@@ -1,0 +1,24 @@
+{
+  "name": "@ecommerce/shared",
+  "version": "1.0.0",
+  "description": "Shared utilities and types for ecommerce microservices",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "packageManager": "pnpm@10.14.0",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "class-validator": "^0.14.2",
+    "class-transformer": "^0.5.1"
+  },
+  "devDependencies": {
+    "@nestjs/common": "^11.0.1",
+    "typescript": "^5.9.2"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^11.0.1"
+  }
+}
