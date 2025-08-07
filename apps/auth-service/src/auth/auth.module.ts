@@ -21,16 +21,30 @@ import { JwtStrategy } from './jwt.strategy';
         options: {
           client: {
             clientId: 'auth-service-client',
-            brokers: [process.env.KAFKA_BROKERS || 'localhost:9092'],
+            brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(','),
             retry: {
-              retries: 5,
+              retries: 10,
               initialRetryTime: 300,
               maxRetryTime: 30000,
+              factor: 2,
+              multiplier: 2,
             },
+            connectionTimeout: 10000,
+            requestTimeout: 10000,
+            enforceRequestTimeout: true,
           },
           consumer: {
             groupId: 'auth-service-group',
             allowAutoTopicCreation: true,
+            retry: {
+              retries: 10,
+            },
+          },
+          producer: {
+            allowAutoTopicCreation: true,
+            retry: {
+              retries: 10,
+            },
           },
         },
       },

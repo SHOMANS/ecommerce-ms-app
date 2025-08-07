@@ -5,6 +5,7 @@ import { User } from './auth/entities/user.entity';
 import { AuthModule } from './auth/auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CacheModule } from '@nestjs/cache-manager';
+import { HealthController } from './health.controller';
 import * as redisStore from 'cache-manager-ioredis';
 
 @Module({
@@ -31,7 +32,7 @@ import * as redisStore from 'cache-manager-ioredis';
     }),
     AuthModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService],
 })
 export class AppModule {}

@@ -1,6 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AuthUserDto } from './dto/user.dto';
 
 interface SignupDto {
   email: string;

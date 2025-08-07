@@ -45,13 +45,15 @@ services:
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
       KAFKA_CFG_INTER_BROKER_LISTENER_NAME: INTERNAL
       ALLOW_PLAINTEXT_LISTENER: yes
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: 'true'
     depends_on:
       - zookeeper
     healthcheck:
-      test: ['CMD-SHELL', 'kafka-topics.sh --bootstrap-server localhost:9092 --list']
+      test: ['CMD-SHELL', 'kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1']
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 10s
+      retries: 10
+      start_period: 30s
 
   auth-service:
     build:
@@ -74,6 +76,13 @@ services:
       DB_NAME: auth_service
       KAFKA_BROKERS: kafka:9093
       NODE_ENV: development
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:3001/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
   users-service:
     build:
       context: .
@@ -94,6 +103,13 @@ services:
       DB_NAME: users_service
       KAFKA_BROKERS: kafka:9093
       NODE_ENV: development
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:3002/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
   nginx:
     image: nginx:latest
     container_name: nginx-gateway
