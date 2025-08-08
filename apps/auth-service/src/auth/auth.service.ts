@@ -11,7 +11,14 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 import { ClientKafka } from '@nestjs/microservices';
-import { AuthUserDto } from './dto/user.dto';
+import {
+  UserCreatedEvent,
+  KAFKA_EVENTS,
+  LoginResponseDto,
+  SignupResponseDto,
+  JwtPayload,
+  UserLoginEvent,
+} from '@ecommerce/shared';
 
 @Injectable()
 export class AuthService {
@@ -111,7 +118,7 @@ export class AuthService {
     email: string,
     password: string,
     name?: string,
-  ): Promise<{ user: AuthUserDto; token: string }> {
+  ): Promise<SignupResponseDto> {
     // Check if user already exists
     const existingUser = await this.userRepo.findOne({ where: { email } });
     if (existingUser) {
@@ -127,16 +134,22 @@ export class AuthService {
     });
     const saved = await this.userRepo.save(user);
 
-    const payload = { sub: saved.id, email: saved.email, role: saved.role };
-    const token = await this.jwtService.signAsync(payload);
+    const payload: JwtPayload = {
+      sub: saved.id,
+      email: saved.email,
+      role: saved.role,
+    };
+    const access_token = await this.jwtService.signAsync(payload);
 
     // Emit user.created event safely with retry logic
-    this.emitEventSafely('user.created', {
+    const userCreatedEvent: UserCreatedEvent = {
       id: saved.id,
       email: saved.email,
       name: saved.name,
       role: saved.role,
-    });
+      createdAt: new Date(),
+    };
+    this.emitEventSafely(KAFKA_EVENTS.USER_CREATED, userCreatedEvent);
 
     return {
       user: {
@@ -145,21 +158,30 @@ export class AuthService {
         name: saved.name,
         role: saved.role,
       },
-      token,
+      access_token,
     };
   }
 
-  async signin(
-    email: string,
-    password: string,
-  ): Promise<{ user: AuthUserDto; access_token: string }> {
+  async signin(email: string, password: string): Promise<LoginResponseDto> {
     const user = await this.userRepo.findOne({ where: { email } });
     if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { sub: user.id, email: user.email, role: user.role };
-    const token = await this.jwtService.signAsync(payload);
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+    const access_token = await this.jwtService.signAsync(payload);
+
+    // Emit login event
+    const loginEvent: UserLoginEvent = {
+      id: user.id,
+      email: user.email,
+      loginAt: new Date(),
+    };
+    this.emitEventSafely(KAFKA_EVENTS.USER_LOGIN, loginEvent);
 
     return {
       user: {
@@ -168,7 +190,23 @@ export class AuthService {
         name: user.name,
         role: user.role,
       },
-      access_token: token,
+      access_token,
+    };
+  }
+
+  async getProfile(userId: string) {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
     };
   }
 }

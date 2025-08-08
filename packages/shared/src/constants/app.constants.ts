@@ -22,3 +22,9 @@ export const HTTP_STATUS_MESSAGES = {
   409: 'Conflict',
   500: 'Internal Server Error',
 } as const;
+
+export const USER_ROLES = {
+  ADMIN: 'admin',
+  USER: 'user',
+  MODERATOR: 'moderator',
+} as const;

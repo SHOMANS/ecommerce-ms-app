@@ -13,14 +13,6 @@ export interface PaginatedResponse<T = any> {
   totalPages: number;
 }
 
-export interface JwtPayload {
-  sub: string;
-  email: string;
-  username: string;
-  iat?: number;
-  exp?: number;
-}
-
 export interface KafkaMessage<T = any> {
   event: string;
   data: T;

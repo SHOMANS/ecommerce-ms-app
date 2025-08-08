@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import type {
-  CreateUserDto,
+  UserCreatedEvent,
   UpdateUserDto,
   UserResponseDto,
-} from './dto/users.dto';
+} from '@ecommerce/shared';
 
 @Injectable()
 export class UsersService {
@@ -15,7 +15,7 @@ export class UsersService {
     private userRepo: Repository<User>,
   ) {}
 
-  async createUserFromEvent(userData: CreateUserDto): Promise<void> {
+  async createUserFromEvent(userData: UserCreatedEvent): Promise<void> {
     if (!userData || !userData.id || !userData.email || !userData.role) {
       console.warn('Received invalid user data:', userData);
       return;
@@ -44,9 +44,36 @@ export class UsersService {
   async getProfile(id: string): Promise<UserResponseDto> {
     const user = await this.userRepo.findOne({ where: { id } });
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
 
+    return this.mapToResponse(user);
+  }
+
+  async updateProfile(
+    id: string,
+    updateData: UpdateUserDto,
+  ): Promise<UserResponseDto> {
+    const user = await this.userRepo.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    Object.assign(user, updateData);
+    const updatedUser = await this.userRepo.save(user);
+    return this.mapToResponse(updatedUser);
+  }
+
+  async getAllUsers(): Promise<UserResponseDto[]> {
+    const users = await this.userRepo.find();
+    return users.map((user) => this.mapToResponse(user));
+  }
+
+  async getUserById(id: string): Promise<UserResponseDto> {
+    const user = await this.userRepo.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
     return this.mapToResponse(user);
   }
 

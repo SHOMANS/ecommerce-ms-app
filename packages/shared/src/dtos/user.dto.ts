@@ -1,5 +1,6 @@
 import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 
+// For user registration/signup
 export class CreateUserDto {
   @IsEmail()
   @IsNotEmpty()
@@ -10,19 +11,35 @@ export class CreateUserDto {
   @MinLength(6)
   password!: string;
 
-  @IsString()
-  @IsNotEmpty()
-  username!: string;
-
-  @IsString()
   @IsOptional()
-  firstName?: string;
-
   @IsString()
+  name?: string;
+
   @IsOptional()
-  lastName?: string;
+  @IsString()
+  role?: string;
 }
 
+// For user creation in services (no password)
+export class CreateUserServiceDto {
+  @IsString()
+  @IsNotEmpty()
+  id!: string;
+
+  @IsEmail()
+  @IsNotEmpty()
+  email!: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  role!: string;
+}
+
+// For login requests
 export class LoginDto {
   @IsEmail()
   @IsNotEmpty()
@@ -33,26 +50,23 @@ export class LoginDto {
   password!: string;
 }
 
+// For updating user profiles
 export class UpdateUserDto {
-  @IsString()
   @IsOptional()
-  username?: string;
+  @IsString()
+  name?: string;
 
-  @IsString()
   @IsOptional()
-  firstName?: string;
-
   @IsString()
-  @IsOptional()
-  lastName?: string;
+  role?: string;
 }
 
+// For API responses
 export class UserResponseDto {
   id!: string;
   email!: string;
-  username!: string;
-  firstName?: string;
-  lastName?: string;
+  name?: string;
+  role!: string;
   createdAt!: Date;
   updatedAt!: Date;
 }
