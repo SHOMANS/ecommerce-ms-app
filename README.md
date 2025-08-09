@@ -301,22 +301,3 @@ docker-compose up -d --scale auth-service=3
 ## 📄 License
 
 This project is licensed under the ISC License.
-
-=========================================================
-=========================================================
-
-# Install workspace dependencies
-pnpm install
-
-# Build shared package
-pnpm --filter @ecommerce/shared build
-
-# Build individual services
-pnpm --filter @ecommerce/auth-service build
-pnpm --filter @ecommerce/users-service build
-
-# Docker operations
-docker-compose up --build -d        # Full deployment
-docker-compose ps                   # Check status
-docker-compose logs [service-name]  # View logs
-docker-compose down                 # Stop everything

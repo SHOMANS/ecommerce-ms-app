@@ -1,0 +1,161 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: root
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+      - ./db/initdb.d:/docker-entrypoint-initdb.d
+    ports:
+      - '5432:5432'
+    networks:
+      - dev-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    networks:
+      - dev-network
+    volumes:
+      - redis_dev:/data
+
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    ports:
+      - '2181:2181'
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: yes
+    networks:
+      - dev-network
+    volumes:
+      - zookeeper_dev:/bitnami
+
+  kafka:
+    image: bitnami/kafka:3.6
+    restart: always
+    ports:
+      - '9092:9092'
+      - '9093:9093'
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_CFG_KRAFT_MODE: 'false'
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:9093
+      KAFKA_CFG_LISTENERS: PLAINTEXT://0.0.0.0:9092,INTERNAL://0.0.0.0:9093
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: INTERNAL
+      ALLOW_PLAINTEXT_LISTENER: yes
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    depends_on:
+      - zookeeper
+    networks:
+      - dev-network
+    volumes:
+      - kafka_dev:/bitnami
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1']
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: ./apps/auth-service/Dockerfile
+      target: development
+    ports:
+      - '3001:3001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      PORT: 3001
+      JWT_SECRET: development_secret_key
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: auth_user
+      DB_PASSWORD: password
+      DB_NAME: auth_service
+      KAFKA_BROKERS: kafka:9093
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      NODE_ENV: development
+    volumes:
+      # Mount source code for hot reload
+      - ./apps/auth-service/src:/app/apps/auth-service/src
+      - ./packages/shared/src:/app/packages/shared/src
+      - /app/node_modules
+      - /app/apps/auth-service/node_modules
+    networks:
+      - dev-network
+    restart: unless-stopped
+
+  users-service:
+    build:
+      context: .
+      dockerfile: ./apps/users-service/Dockerfile
+      target: development
+    ports:
+      - '3002:3002'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      PORT: 3002
+      JWT_SECRET: development_secret_key
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: users_user
+      DB_PASSWORD: password
+      DB_NAME: users_service
+      KAFKA_BROKERS: kafka:9093
+      NODE_ENV: development
+    volumes:
+      # Mount source code for hot reload
+      - ./apps/users-service/src:/app/apps/users-service/src
+      - ./packages/shared/src:/app/packages/shared/src
+      - /app/node_modules
+      - /app/apps/users-service/node_modules
+    networks:
+      - dev-network
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx-gateway-dev
+    ports:
+      - '8080:80'
+    volumes:
+      - ./gateway/default.dev.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - auth-service
+      - users-service
+    networks:
+      - dev-network
+    restart: unless-stopped
+
+volumes:
+  pgdata_dev:
+  redis_dev:
+  zookeeper_dev:
+  kafka_dev:
+
+networks:
+  dev-network:
+    driver: bridge
