@@ -3,7 +3,6 @@
 export interface UserCreatedEvent {
   id: string;
   email: string;
-  name?: string;
   role: string;
   createdAt?: Date;
 }
@@ -22,10 +21,7 @@ export interface UserDeletedEvent {
   deletedAt: Date;
 }
 
-export interface UserLoginEvent {
-  id: string;
-  email: string;
-  loginAt: Date;
-  ip?: string;
-  userAgent?: string;
+// New events for user lookup via Kafka
+export interface UserLookupRequestEvent {
+  userId: string;
 }

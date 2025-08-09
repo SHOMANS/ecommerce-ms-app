@@ -13,10 +13,6 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsString()
-  name?: string;
-
-  @IsOptional()
-  @IsString()
   role?: string;
 }
 
@@ -69,4 +65,15 @@ export class UserResponseDto {
   role!: string;
   createdAt!: Date;
   updatedAt!: Date;
+}
+
+// For profile response with token
+export class ProfileResponseDto {
+  id!: string;
+  email!: string;
+  name?: string;
+  role!: string;
+  createdAt!: Date;
+  updatedAt!: Date;
+  access_token!: string;
 }

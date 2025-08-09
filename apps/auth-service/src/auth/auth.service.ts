@@ -3,7 +3,6 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
-  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
@@ -17,17 +16,11 @@ import {
   LoginResponseDto,
   SignupResponseDto,
   JwtPayload,
-  UserLoginEvent,
+  UserResponseDto,
 } from '@ecommerce/shared';
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
-  private isKafkaConnected = false;
-  private connectionRetries = 0;
-  private maxConnectionRetries = 10;
-  private retryDelay = 5000;
-
   constructor(
     @InjectRepository(User)
     private userRepo: Repository<User>,
@@ -38,88 +31,11 @@ export class AuthService {
   ) {}
 
   async onModuleInit() {
-    await this.connectToKafkaWithRetry();
+    this.kafkaClient.subscribeToResponseOf(KAFKA_EVENTS.USER_LOOKUP_REQUEST);
+    await this.kafkaClient.connect();
   }
 
-  private async connectToKafkaWithRetry(): Promise<void> {
-    while (
-      !this.isKafkaConnected &&
-      this.connectionRetries < this.maxConnectionRetries
-    ) {
-      try {
-        this.connectionRetries++;
-        this.logger.log(
-          `Attempting Kafka client connection (attempt ${this.connectionRetries}/${this.maxConnectionRetries})...`,
-        );
-
-        await Promise.race([
-          this.kafkaClient.connect(),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Connection timeout')), 10000),
-          ),
-        ]);
-
-        this.isKafkaConnected = true;
-        this.connectionRetries = 0;
-        this.logger.log('Kafka client connected successfully');
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        this.logger.warn(
-          `Kafka client connection attempt ${this.connectionRetries} failed: ${errorMessage}`,
-        );
-
-        if (this.connectionRetries < this.maxConnectionRetries) {
-          this.logger.log(
-            `Retrying Kafka connection in ${this.retryDelay}ms...`,
-          );
-          await new Promise((resolve) => setTimeout(resolve, this.retryDelay));
-        } else {
-          this.logger.error(
-            'Failed to connect Kafka client after all retries. Events will not be emitted.',
-          );
-        }
-      }
-    }
-  }
-
-  private emitEventSafely(
-    event: string,
-    data: { email?: string; [key: string]: any },
-  ): void {
-    if (!this.isKafkaConnected) {
-      this.logger.warn(`Cannot emit ${event} event: Kafka not connected`);
-      return;
-    }
-
-    try {
-      this.kafkaClient.emit(event, data);
-      this.logger.log(
-        `Successfully emitted ${event} event for user: ${data.email}`,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to emit ${event} event:`,
-        error instanceof Error ? error.message : String(error),
-      );
-
-      // Mark as disconnected and attempt to reconnect
-      this.isKafkaConnected = false;
-      this.connectionRetries = 0;
-
-      // Attempt to reconnect in background
-      setTimeout(() => {
-        void this.connectToKafkaWithRetry();
-      }, 1000);
-    }
-  }
-
-  async signup(
-    email: string,
-    password: string,
-    name?: string,
-  ): Promise<SignupResponseDto> {
-    // Check if user already exists
+  async signup(email: string, password: string): Promise<SignupResponseDto> {
     const existingUser = await this.userRepo.findOne({ where: { email } });
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
@@ -129,7 +45,6 @@ export class AuthService {
     const user = this.userRepo.create({
       email,
       password: hashedPassword,
-      name,
       role: 'user',
     });
     const saved = await this.userRepo.save(user);
@@ -141,21 +56,18 @@ export class AuthService {
     };
     const access_token = await this.jwtService.signAsync(payload);
 
-    // Emit user.created event safely with retry logic
     const userCreatedEvent: UserCreatedEvent = {
       id: saved.id,
       email: saved.email,
-      name: saved.name,
       role: saved.role,
       createdAt: new Date(),
     };
-    this.emitEventSafely(KAFKA_EVENTS.USER_CREATED, userCreatedEvent);
+    this.kafkaClient.emit(KAFKA_EVENTS.USER_CREATED, userCreatedEvent);
 
     return {
       user: {
         id: saved.id,
         email: saved.email,
-        name: saved.name,
         role: saved.role,
       },
       access_token,
@@ -175,38 +87,13 @@ export class AuthService {
     };
     const access_token = await this.jwtService.signAsync(payload);
 
-    // Emit login event
-    const loginEvent: UserLoginEvent = {
-      id: user.id,
-      email: user.email,
-      loginAt: new Date(),
-    };
-    this.emitEventSafely(KAFKA_EVENTS.USER_LOGIN, loginEvent);
+    const userData = (await this.kafkaClient
+      .send(KAFKA_EVENTS.USER_LOOKUP_REQUEST, { userId: user.id })
+      .toPromise()) as UserResponseDto;
 
     return {
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
+      user: userData,
       access_token,
-    };
-  }
-
-  async getProfile(userId: string) {
-    const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
     };
   }
 }

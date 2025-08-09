@@ -1,4 +1,5 @@
 import { Request } from 'express';
+import { UserResponseDto } from '../dtos';
 
 // JWT Payload interface
 export interface JwtPayload {
@@ -21,14 +22,9 @@ export interface AuthenticatedRequest extends Request {
   user: AuthenticatedUser;
 }
 
-// Login response
+// Login response with full user details from users service
 export interface LoginResponseDto {
-  user: {
-    id: string;
-    email: string;
-    name?: string;
-    role: string;
-  };
+  user: UserResponseDto;
   access_token: string;
 }
 
@@ -37,7 +33,6 @@ export interface SignupResponseDto {
   user: {
     id: string;
     email: string;
-    name?: string;
     role: string;
   };
   access_token: string;

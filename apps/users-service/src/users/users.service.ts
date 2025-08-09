@@ -1,11 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { JwtService } from '@nestjs/jwt';
+import { ClientKafka } from '@nestjs/microservices';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import type {
   UserCreatedEvent,
   UpdateUserDto,
   UserResponseDto,
+  JwtPayload,
+  ProfileResponseDto,
+  UserLookupRequestEvent,
 } from '@ecommerce/shared';
 
 @Injectable()
@@ -13,6 +19,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private userRepo: Repository<User>,
+    private jwtService: JwtService,
+    @Inject('KAFKA_SERVICE') private kafkaClient: ClientKafka,
   ) {}
 
   async createUserFromEvent(userData: UserCreatedEvent): Promise<void> {
@@ -21,13 +29,13 @@ export class UsersService {
       return;
     }
 
-    const { id, email, role, name } = userData;
+    const { id, email, role } = userData;
 
     try {
       const existingUser = await this.userRepo.findOne({ where: { email } });
 
       if (!existingUser) {
-        await this.userRepo.save({ id, email, name, role });
+        await this.userRepo.save({ id, email, role });
         console.log('User created successfully:', email);
       } else {
         console.log('User already exists, skipping creation:', email);
@@ -41,13 +49,24 @@ export class UsersService {
     }
   }
 
-  async getProfile(id: string): Promise<UserResponseDto> {
+  async getProfile(id: string): Promise<ProfileResponseDto> {
     const user = await this.userRepo.findOne({ where: { id } });
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    return this.mapToResponse(user);
+    // Generate a fresh access token
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+    const access_token = await this.jwtService.signAsync(payload);
+
+    return {
+      ...this.mapToResponse(user),
+      access_token,
+    };
   }
 
   async updateProfile(
@@ -104,6 +123,19 @@ export class UsersService {
   async deleteUser(id: string): Promise<boolean> {
     const result = await this.userRepo.delete(id);
     return (result.affected ?? 0) > 0;
+  }
+
+  async handleUserLookupRequest(
+    data: UserLookupRequestEvent,
+  ): Promise<UserResponseDto> {
+    const user = await this.userRepo.findOne({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      where: { id: data.userId },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return this.mapToResponse(user);
   }
 
   private mapToResponse(user: User): UserResponseDto {

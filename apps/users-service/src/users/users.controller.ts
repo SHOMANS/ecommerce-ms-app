@@ -7,15 +7,21 @@ import {
   Request,
   Param,
 } from '@nestjs/common';
-import { EventPattern, Payload } from '@nestjs/microservices';
+import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
 import {
   UpdateUserDto,
   UserResponseDto,
+  ProfileResponseDto,
   JwtAuthGuard,
   RolesGuard,
   Roles,
+  KAFKA_EVENTS,
 } from '@ecommerce/shared';
-import type { UserCreatedEvent, AuthenticatedRequest } from '@ecommerce/shared';
+import type {
+  UserCreatedEvent,
+  AuthenticatedRequest,
+  UserLookupRequestEvent,
+} from '@ecommerce/shared';
 import { UsersService } from './users.service';
 
 @Controller()
@@ -23,9 +29,17 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   // Kafka Event Handlers
-  @EventPattern('user.created')
+  @EventPattern(KAFKA_EVENTS.USER_CREATED)
   async handleUserCreated(@Payload() data: UserCreatedEvent): Promise<void> {
     await this.usersService.createUserFromEvent(data);
+  }
+
+  @MessagePattern(KAFKA_EVENTS.USER_LOOKUP_REQUEST)
+  async handleUserLookupRequest(
+    @Payload() data: UserLookupRequestEvent,
+  ): Promise<UserResponseDto | null> {
+    console.log(data);
+    return this.usersService.handleUserLookupRequest(data);
   }
 
   // HTTP Endpoints
@@ -33,7 +47,7 @@ export class UsersController {
   @Get('profile')
   async getProfile(
     @Request() req: AuthenticatedRequest,
-  ): Promise<UserResponseDto> {
+  ): Promise<ProfileResponseDto> {
     return this.usersService.getProfile(req.user.userId);
   }
 
