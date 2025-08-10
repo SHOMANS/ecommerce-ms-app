@@ -17,8 +17,8 @@ async function bootstrap() {
   ];
   let kafkaConnected = false;
   let retryCount = 0;
-  const maxRetries = 10;
-  const retryDelay = 5000; // 5 seconds
+  const maxRetries = 5; // Reduced retries
+  const retryDelay = 10000; // Increased delay to 10 seconds
 
   // Robust Kafka connection with retry logic
   while (!kafkaConnected && retryCount < maxRetries) {
@@ -36,28 +36,29 @@ async function bootstrap() {
             clientId: 'users-service',
             brokers: kafkaBrokers,
             retry: {
-              retries: 10,
-              initialRetryTime: 300,
-              maxRetryTime: 30000,
+              retries: 5, // Reduced internal retries
+              initialRetryTime: 1000,
+              maxRetryTime: 15000,
             },
-            connectionTimeout: 10000,
-            requestTimeout: 10000,
+            connectionTimeout: 30000, // Increased to 30 seconds
+            requestTimeout: 25000, // Increased timeout
           },
           consumer: {
             groupId: 'users-consumer',
             allowAutoTopicCreation: true,
             retry: {
-              retries: 10,
+              retries: 5,
             },
           },
         },
       });
 
-      // Start microservice with timeout
+      // Start microservice with longer timeout
       await Promise.race([
         app.startAllMicroservices(),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Connection timeout')), 15000),
+        new Promise(
+          (_, reject) =>
+            setTimeout(() => reject(new Error('Connection timeout')), 30000), // Increased to 30 seconds
         ),
       ]);
 
@@ -77,6 +78,8 @@ async function bootstrap() {
         logger.error(
           'Failed to connect to Kafka after all retries. Service will run without event consumption.',
         );
+        // Continue without Kafka - service should still work for HTTP endpoints
+        break;
       }
     }
   }

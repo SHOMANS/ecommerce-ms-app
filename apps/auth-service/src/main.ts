@@ -21,12 +21,12 @@ async function bootstrap() {
           clientId: 'auth-service',
           brokers: [kafkaBroker],
           retry: {
-            retries: 3,
-            initialRetryTime: 100,
-            maxRetryTime: 10000,
+            retries: 5,
+            initialRetryTime: 1000,
+            maxRetryTime: 15000,
           },
-          connectionTimeout: 5000,
-          requestTimeout: 5000,
+          connectionTimeout: 30000, // Increased timeout
+          requestTimeout: 25000, // Increased timeout
         },
         consumer: {
           groupId: 'auth-consumer',
@@ -35,8 +35,13 @@ async function bootstrap() {
       },
     });
 
-    // Start both HTTP server and microservice
-    await app.startAllMicroservices();
+    // Start both HTTP server and microservice with timeout
+    await Promise.race([
+      app.startAllMicroservices(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Kafka connection timeout')), 30000),
+      ),
+    ]);
     console.log('Kafka microservice connected successfully');
   } catch (error) {
     console.warn(
