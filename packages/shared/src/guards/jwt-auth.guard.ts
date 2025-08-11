@@ -20,7 +20,7 @@ export class JwtAuthGuard implements CanActivate {
         secret: process.env.JWT_SECRET || 'secret',
       });
 
-      // إضافة user data للـ request
+      // Add user data to request
       (request as any).user = {
         userId: payload.sub,
         email: payload.email,

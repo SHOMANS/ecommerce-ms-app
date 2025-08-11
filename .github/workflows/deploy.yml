@@ -1,6 +1,5 @@
 name: Auto Deploy to EC2
 
-# تشغيل النشر التلقائي عند نجاح الـ CI/CD
 on:
   workflow_run:
     workflows: ["CI/CD Pipeline"]
@@ -8,7 +7,6 @@ on:
       - completed
     branches: [main]
 
-  # تشغيل يدوي للنشر
   workflow_dispatch:
     inputs:
       environment:
@@ -36,96 +34,96 @@ jobs:
       url: ${{ vars.DEPLOYMENT_URL }}
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔧 Setup SSH key
+      - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: 🚀 Deploy to EC2
+      - name: Deploy to EC2
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
             set -e
             
-            echo "🔄 بدء عملية النشر..."
+            echo "Starting deployment..."
             
-            # الانتقال إلى مجلد المشروع
+            # Navigate to project directory
             cd ~/ecommerce-ms-app || {
-              echo "❌ مجلد المشروع غير موجود"
+              echo "Project directory not found"
               exit 1
             }
             
-            # تحديث الكود
-            echo "📥 تحديث الكود من GitHub..."
+            # Update code
+            echo "Updating code from GitHub..."
             git fetch origin
             git reset --hard origin/main
             
-            # إيقاف الخدمات الحالية
-            echo "⏹️ إيقاف الخدمات الحالية..."
+            # Stop current services
+            echo "Stopping current services..."
             docker compose down --remove-orphans || true
             
-            # تنظيف الـ images القديمة
-            echo "🧹 تنظيف الـ images القديمة..."
+            # Cleanup old images
+            echo "Cleaning up old images..."
             docker system prune -f || true
             
-            # إعداد البيئة للإنتاج
-            echo "🔧 إعداد بيئة الإنتاج..."
+            # Setup production environment
+            echo "Setting up production environment..."
             chmod +x scripts/setup-env.sh
             ./scripts/setup-env.sh prod
             
-            # بناء وتشغيل الخدمات الجديدة
-            echo "🏗️ بناء وتشغيل الخدمات..."
+            # Build and start new services
+            echo "Building and starting services..."
             docker compose up --build -d
             
-            # انتظار حتى تصبح الخدمات جاهزة
-            echo "⏳ انتظار تشغيل الخدمات..."
+            # Wait for services to be ready
+            echo "Waiting for services to start..."
             sleep 60
             
-            # اختبار الخدمات
-            echo "🧪 اختبار الخدمات..."
+            # Test services
+            echo "Testing services..."
             if curl -f http://localhost/health; then
-              echo "✅ النشر نجح - الخدمات تعمل"
+              echo "✅ Deployment successful - Services are running"
             else
-              echo "❌ النشر فشل - الخدمات لا تعمل"
+              echo "❌ Deployment failed - Services are not running"
               docker compose logs --tail=50
               exit 1
             fi
             
-            # عرض حالة الحاويات
-            echo "📊 حالة الحاويات:"
+            # Show container status
+            echo "Container status:"
             docker compose ps
             
-            echo "🎉 تم النشر بنجاح!"
+            echo "🎉 Deployment completed successfully!"
           ENDSSH
 
-      - name: 🧪 Health Check After Deployment
+      - name: Health Check After Deployment
         run: |
-          echo "🔍 فحص صحة الخدمات بعد النشر..."
+          echo "Checking service health after deployment..."
 
-          # انتظار إضافي للتأكد
+          # Additional wait to ensure services are ready
           sleep 30
 
-          # اختبار الخدمات من الخارج
+          # Test services from external
           if curl -f http://${{ secrets.EC2_HOST }}/health; then
-            echo "✅ الخدمات تعمل بشكل صحيح من الخارج"
+            echo "✅ Services are running correctly from external"
           else
-            echo "❌ الخدمات لا تعمل من الخارج - تحقق من Security Groups"
+            echo "❌ Services not accessible from external - check Security Groups"
             exit 1
           fi
 
-      - name: 📢 Deployment Notification
+      - name: Deployment Notification
         if: always()
         run: |
           if [ $? -eq 0 ]; then
-            echo "🎉 تم النشر بنجاح إلى الإنتاج!"
-            echo "🌐 الموقع: http://${{ secrets.EC2_HOST }}"
-            echo "⏰ الوقت: $(date)"
+            echo "🎉 Deployment to production successful!"
+            echo "🌐 URL: http://${{ secrets.EC2_HOST }}"
+            echo "⏰ Time: $(date)"
             echo "📝 Commit: ${{ github.sha }}"
           else
-            echo "❌ فشل النشر!"
-            echo "🔧 يرجى مراجعة السجلات"
+            echo "❌ Deployment failed!"
+            echo "🔧 Please check logs"
           fi

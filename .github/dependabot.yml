@@ -1,5 +1,4 @@
 # Dependabot configuration for automatic dependency updates
-# تحديث تلقائي للمكتبات والاعتماديات
 
 version: 2
 updates:
@@ -16,7 +15,7 @@ updates:
     assignees:
       - "SHOMANS"
     commit-message:
-      prefix: "📦"
+      prefix: "deps:"
       include: "scope"
     labels:
       - "dependencies"
@@ -37,7 +36,7 @@ updates:
     reviewers:
       - "SHOMANS"
     commit-message:
-      prefix: "🔐 auth-service:"
+      prefix: "auth-service:"
     labels:
       - "dependencies"
       - "auth-service"
@@ -53,7 +52,7 @@ updates:
     reviewers:
       - "SHOMANS"
     commit-message:
-      prefix: "👤 users-service:"
+      prefix: "users-service:"
     labels:
       - "dependencies"
       - "users-service"
@@ -69,7 +68,7 @@ updates:
     reviewers:
       - "SHOMANS"
     commit-message:
-      prefix: "📦 shared:"
+      prefix: "shared:"
     labels:
       - "dependencies"
       - "shared-package"
@@ -85,7 +84,7 @@ updates:
     reviewers:
       - "SHOMANS"
     commit-message:
-      prefix: "🐳"
+      prefix: "docker:"
     labels:
       - "dependencies"
       - "docker"
@@ -101,7 +100,7 @@ updates:
     reviewers:
       - "SHOMANS"
     commit-message:
-      prefix: "🚀 ci:"
+      prefix: "ci:"
     labels:
       - "dependencies"
       - "github-actions"

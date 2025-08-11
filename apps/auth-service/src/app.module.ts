@@ -22,12 +22,12 @@ import * as redisStore from 'cache-manager-ioredis';
       logging: true, // Enable logging for debugging
     }),
     CacheModule.registerAsync({
-      isGlobal: true, // نجعل الكاش متاح على مستوى التطبيق كامل
+      isGlobal: true, // Make cache available globally
       useFactory: () => ({
-        store: redisStore, // استخدام redis store
-        host: 'redis', // الاسم في docker-compose
+        store: redisStore, // Use redis store
+        host: 'redis', // Name in docker-compose
         port: 6379,
-        ttl: 10, // وقت صلاحية الكاش (ثواني)
+        ttl: 10, // Cache TTL in seconds
       }),
     }),
     AuthModule,

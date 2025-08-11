@@ -1,150 +1,59 @@
-name: File Watcher & Hot Reload
+name: File Change Monitor
 
-# مراقبة التغييرات المستمرة للملفات المهمة
 on:
   push:
+    branches: [main, develop]
     paths:
       - "apps/**"
       - "packages/**"
       - "docker-compose*.yml"
-      - "package.json"
-      - ".env*.sample"
-      - "scripts/**"
-
-  schedule:
-    # فحص دوري كل ساعة
-    - cron: "0 * * * *"
+      - ".github/workflows/**"
 
   workflow_dispatch:
 
 jobs:
-  watch-and-validate:
-    name: Watch Files & Validate
+  validate-changes:
+    name: Validate Changes
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - name: 🔍 Detect changed files
-        id: changes
-        run: |
-          echo "Detecting changes..."
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v41
+        with:
+          files: |
+            apps/**
+            packages/**
+            docker-compose*.yml
 
-          # الحصول على قائمة الملفات المتغيرة
-          if [ "${{ github.event_name }}" = "push" ]; then
-            changed_files=$(git diff --name-only HEAD^ HEAD)
-          else
-            # للفحص الدوري، فحص جميع الملفات
-            changed_files="all"
-          fi
+      - name: Setup PNPM
+        if: steps.changed-files.outputs.any_changed == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: "9.x"
 
-          echo "Changed files:"
-          echo "$changed_files"
-
-          # تحديد نوع التغييرات
-          if echo "$changed_files" | grep -q "apps/"; then
-            echo "apps_changed=true" >> $GITHUB_OUTPUT
-          fi
-
-          if echo "$changed_files" | grep -q "packages/"; then
-            echo "packages_changed=true" >> $GITHUB_OUTPUT
-          fi
-
-          if echo "$changed_files" | grep -q "docker-compose"; then
-            echo "docker_changed=true" >> $GITHUB_OUTPUT
-          fi
-
-          if echo "$changed_files" | grep -q "scripts/"; then
-            echo "scripts_changed=true" >> $GITHUB_OUTPUT
-          fi
-
-          if echo "$changed_files" | grep -q ".env"; then
-            echo "env_changed=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: � Install pnpm
-        run: npm install -g pnpm
-
-      - name: �🟢 Setup Node.js
+      - name: Setup Node.js
+        if: steps.changed-files.outputs.any_changed == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20.x"
           cache: "pnpm"
-          cache-dependency-path: "pnpm-lock.yaml"
 
-      - name: 📦 Install dependencies
+      - name: Install dependencies
+        if: steps.changed-files.outputs.any_changed == 'true'
         run: pnpm install --frozen-lockfile
 
-      - name: 🔧 Validate environment setup
-        if: steps.changes.outputs.env_changed == 'true' || steps.changes.outputs.scripts_changed == 'true'
+      - name: Validate build
+        if: steps.changed-files.outputs.any_changed == 'true'
+        run: pnpm build
+
+      - name: Validate Docker configuration
+        if: contains(steps.changed-files.outputs.all_changed_files, 'docker-compose')
         run: |
-          echo "🔍 Validating environment setup scripts..."
-          chmod +x scripts/*.sh
-
-          # اختبار سكريبت الإعداد
-          ./scripts/setup-env.sh dev
-          ./scripts/validate-env.sh
-
-      - name: 🏗️ Quick build validation
-        if: steps.changes.outputs.apps_changed == 'true' || steps.changes.outputs.packages_changed == 'true'
-        run: |
-          echo "🏗️ Validating build process..."
-          pnpm --filter @ecommerce/shared build
-          pnpm --filter @ecommerce/auth-service build
-          pnpm --filter @ecommerce/users-service build
-
-      - name: 🐳 Docker validation
-        if: steps.changes.outputs.docker_changed == 'true'
-        run: |
-          echo "🐳 Validating Docker configuration..."
-
-          # التحقق من صحة docker-compose files
-          docker compose -f docker-compose.yml config
-          docker compose -f docker-compose.dev.yml config
-
-          # اختبار بناء سريع
-          docker compose -f docker-compose.dev.yml build --no-cache auth-service
-
-      - name: 📊 Generate change report
-        run: |
-          echo "📊 Change Report" >> change_report.md
-          echo "================" >> change_report.md
-          echo "" >> change_report.md
-          echo "**Commit:** ${{ github.sha }}" >> change_report.md
-          echo "**Branch:** ${{ github.ref }}" >> change_report.md
-          echo "**Time:** $(date)" >> change_report.md
-          echo "" >> change_report.md
-
-          if [ "${{ steps.changes.outputs.apps_changed }}" = "true" ]; then
-            echo "- 🔄 Applications changed" >> change_report.md
-          fi
-
-          if [ "${{ steps.changes.outputs.packages_changed }}" = "true" ]; then
-            echo "- 📦 Shared packages changed" >> change_report.md
-          fi
-
-          if [ "${{ steps.changes.outputs.docker_changed }}" = "true" ]; then
-            echo "- 🐳 Docker configuration changed" >> change_report.md
-          fi
-
-          if [ "${{ steps.changes.outputs.scripts_changed }}" = "true" ]; then
-            echo "- 🔧 Scripts changed" >> change_report.md
-          fi
-
-          if [ "${{ steps.changes.outputs.env_changed }}" = "true" ]; then
-            echo "- ⚙️ Environment files changed" >> change_report.md
-          fi
-
-          echo "" >> change_report.md
-          echo "**Status:** ✅ All validations passed" >> change_report.md
-
-          cat change_report.md
-
-      - name: 📤 Upload change report
-        uses: actions/upload-artifact@v4
-        with:
-          name: change-report-${{ github.sha }}
-          path: change_report.md
+          docker compose config --quiet
