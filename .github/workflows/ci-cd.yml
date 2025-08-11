@@ -10,7 +10,7 @@ on:
 
 env:
   NODE_VERSION: "20.x"
-  PNPM_VERSION: "9.x"
+  PNPM_VERSION: "10.14.0"
 
 jobs:
   build-and-lint:
