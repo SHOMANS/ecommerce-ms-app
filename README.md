@@ -57,6 +57,108 @@ npm run setup:prod
 npm run setup:local
 ```
 
+## 🔄 CI/CD Pipeline
+
+This project includes a comprehensive CI/CD pipeline that automatically:
+- **Watches for changes** and triggers builds
+- **Runs tests** and code quality checks
+- **Builds Docker images** and publishes them
+- **Deploys to production** automatically
+- **Manages releases** with semantic versioning
+
+### 🚀 GitHub Actions Workflows
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| **CI/CD Pipeline** | Push to any branch, PR to main | Test, build, and deploy |
+| **File Watcher** | Push to main, file changes | Monitor performance and validate changes |
+| **Auto Deploy** | Successful CI/CD completion | Deploy to EC2 production server |
+| **Release Management** | Push to main (with changes) | Create releases and publish Docker images |
+
+### 📋 Pipeline Features
+
+- ✅ **Multi-Node Testing** (Node.js 18.x, 20.x)
+- ✅ **Docker Build & Test** with service integration testing
+- ✅ **Security Scanning** with Trivy vulnerability scanner
+- ✅ **Automatic Deployment** to EC2 production server
+- ✅ **Performance Monitoring** with response time benchmarks
+- ✅ **Semantic Versioning** with automated releases
+- ✅ **Dependency Updates** with Dependabot
+
+### 🔧 CI/CD Scripts
+
+```bash
+# Local CI testing
+npm run ci:test          # Run linting, tests, and build
+npm run ci:docker        # Full Docker integration test
+
+# Service testing
+npm run test:services    # Test all services and integrations
+
+# Environment validation
+npm run env:validate     # Validate environment configuration
+```
+
+### ⚙️ Required GitHub Secrets
+
+For CI/CD to work, add these secrets in GitHub Repository Settings:
+
+```
+EC2_HOST              # Your EC2 instance IP/hostname
+EC2_USER              # SSH username (usually 'ubuntu')
+EC2_PRIVATE_KEY       # Contents of your .pem SSH key file
+```
+
+See [.github/SECRETS.md](.github/SECRETS.md) for detailed setup instructions.
+
+### 🔄 Automatic Deployment Flow
+
+1. **Push to main branch** → Triggers CI/CD pipeline
+2. **Tests pass** → Builds Docker images
+3. **Security scan passes** → Deploys to EC2
+4. **Health checks pass** → Creates release (if changes detected)
+5. **Publishes Docker images** → Sends notifications
+
+### 📊 Release Management
+
+- **Automatic version detection** based on commit messages:
+  - `feat:` or `feature:` → Minor version bump
+  - `fix:` or `bugfix:` → Patch version bump  
+  - `BREAKING:` or `major:` → Major version bump
+- **Automated changelog generation**
+- **Docker image tagging** with version numbers
+- **GitHub releases** with detailed notes
+
+### 🧪 Testing in CI/CD
+
+The pipeline includes comprehensive testing:
+
+```bash
+# Code quality
+- ESLint code linting
+- TypeScript compilation
+- Unit tests with coverage
+
+# Integration testing  
+- Docker container builds
+- Service health checks
+- API endpoint testing
+- Kafka message communication
+- Database connectivity
+
+# Security testing
+- Vulnerability scanning
+- Dependency security audit
+- Container image scanning
+```
+
+### 🚨 Pipeline Notifications
+
+- ✅ **Success**: Deployment completed successfully
+- ❌ **Failure**: Detailed error logs and troubleshooting
+- 📊 **Performance**: Response time monitoring alerts
+- 🔒 **Security**: Vulnerability scan results
+
 ### 3. Validate Environment
 
 ```bash

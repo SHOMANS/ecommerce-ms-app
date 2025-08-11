@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -129,7 +128,6 @@ export class UsersService {
     data: UserLookupRequestEvent,
   ): Promise<UserResponseDto> {
     const user = await this.userRepo.findOne({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       where: { id: data.userId },
     });
     if (!user) {

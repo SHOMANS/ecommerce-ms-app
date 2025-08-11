@@ -1,0 +1,107 @@
+# Dependabot configuration for automatic dependency updates
+# تحديث تلقائي للمكتبات والاعتماديات
+
+version: 2
+updates:
+  # npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "04:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "SHOMANS"
+    assignees:
+      - "SHOMANS"
+    commit-message:
+      prefix: "📦"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "npm"
+    ignore:
+      # Ignore major version updates for these packages
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+
+  # Auth service dependencies
+  - package-ecosystem: "npm"
+    directory: "/apps/auth-service"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "04:30"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "SHOMANS"
+    commit-message:
+      prefix: "🔐 auth-service:"
+    labels:
+      - "dependencies"
+      - "auth-service"
+
+  # Users service dependencies
+  - package-ecosystem: "npm"
+    directory: "/apps/users-service"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "05:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "SHOMANS"
+    commit-message:
+      prefix: "👤 users-service:"
+    labels:
+      - "dependencies"
+      - "users-service"
+
+  # Shared package dependencies
+  - package-ecosystem: "npm"
+    directory: "/packages/shared"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "05:30"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "SHOMANS"
+    commit-message:
+      prefix: "📦 shared:"
+    labels:
+      - "dependencies"
+      - "shared-package"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "SHOMANS"
+    commit-message:
+      prefix: "🐳"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:30"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "SHOMANS"
+    commit-message:
+      prefix: "🚀 ci:"
+    labels:
+      - "dependencies"
+      - "github-actions"
