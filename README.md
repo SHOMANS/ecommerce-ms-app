@@ -1,138 +1,172 @@
 # E-commerce Microservices Monorepo
 
-A modern microservices architecture built with NestJS, PostgreSQL, Redis, and Kafka in a monorepo structure.
+A modern microservices architecture built with NestJS, PostgreSQL, Redis, and Kafka in a monorepo structure with production-ready Docker deployment.
 
 ## 🏗️ Architecture
 
 ```
 ecommerce-app/
 ├── apps/                    # Microservices
-│   ├── auth-service/       # Authentication & JWT
-│   └── users-service/      # User management
+│   ├── auth-service/       # Authentication & JWT (Port 3001)
+│   └── users-service/      # User management (Port 3002)
 ├── packages/               # Shared libraries
 │   └── shared/            # Common DTOs, types, utils
+├── scripts/               # Setup and utility scripts
+├── docs/                  # Documentation
 ├── db/                    # Database initialization
-├── gateway/               # Nginx configuration
-└── tools/                 # Development tools
+├── gateway/               # Nginx configuration (Port 80/8080)
+└── docker-compose.yml     # Production deployment
 ```
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Fresh Clone)
 
 ### Prerequisites
 
-- Node.js 18+
-- pnpm 8+
-- Docker & Docker Compose
+- **Node.js 18+** and **pnpm 8+**
+- **Docker & Docker Compose**
+- **Git**
 
-### Development Setup
-
-1. **Clone and install dependencies:**
+### 1. Clone and Install
 
 ```bash
-git clone <repository-url>
-cd ecommerce-app
+git clone https://github.com/SHOMANS/ecommerce-ms-app.git
+cd ecommerce-ms-app
 pnpm install
 ```
 
-2. **Start infrastructure (PostgreSQL, Redis, Kafka):**
+### 2. Environment Setup
+
+Choose your environment and run the setup script:
+
+**For Development:**
 
 ```bash
-pnpm docker:up
+npm run setup:dev
 ```
 
-3. **Start all services in development mode:**
+**For Production:**
 
 ```bash
-pnpm dev
+npm run setup:prod
+# ⚠️ Important: Update passwords in .env before deploying!
 ```
 
-4. **Or start individual services:**
+**For Local Testing:**
 
 ```bash
-# Auth service only
-pnpm --filter @ecommerce/auth-service start:dev
-
-# Users service only
-pnpm --filter @ecommerce/users-service start:dev
+npm run setup:local
 ```
 
-### Production with Docker
+### 3. Validate Environment
 
 ```bash
-# Start everything
-docker-compose up -d
-
-# View logs
-pnpm docker:logs
-
-# Stop everything
-pnpm docker:down
+npm run env:validate
 ```
 
-## 📚 Services
+### 4. Start the Application
 
-### 🔐 Auth Service (Port 3001)
-
-- User registration & authentication
-- JWT token generation & validation
-- Password hashing with bcrypt
-- Redis session caching
-
-**Endpoints:**
-
-- `POST /auth/register` - User registration
-- `POST /auth/login` - User login
-- `POST /auth/logout` - User logout
-- `GET /auth/profile` - Get user profile
-
-### 👤 Users Service (Port 3002)
-
-- User profile management
-- User data CRUD operations
-- Kafka event publishing
-- JWT validation
-
-**Endpoints:**
-
-- `GET /users/profile` - Get user profile
-- `PUT /users/profile` - Update user profile
-- `GET /users` - List users (admin)
-- `DELETE /users/:id` - Delete user (admin)
-
-### 🌐 Gateway (Port 8080)
-
-- Nginx reverse proxy
-- Load balancing
-- Request routing
-- Rate limiting
-
-## 🛠️ Available Scripts
-
-### Root Level Commands
+**Development Mode:**
 
 ```bash
-# Build all packages
-pnpm build
+npm run docker:dev
+```
 
-# Run all services in development
-pnpm dev
+**Production Mode:**
 
-# Start all services in production mode
-pnpm start
+```bash
+npm run docker:prod
+```
 
-# Run tests across all packages
-pnpm test
+### 5. Verify Everything is Working
 
-# Lint all packages
-pnpm lint
+```bash
+# Health check
+curl http://localhost/health
+# or for dev: curl http://localhost:8080/health
 
-# Clean all build artifacts
-pnpm clean
+# Test signup
+curl -X POST http://localhost/auth/signup \
+  -H 'Content-Type: application/json' \
+  -d '{"email": "test@example.com", "password": "test123"}'
 
-# Docker commands
-pnpm docker:up    # Start infrastructure
-pnpm docker:down  # Stop everything
-pnpm docker:logs  # View logs
+# Test signin
+curl -X POST http://localhost/auth/signin \
+  -H 'Content-Type: application/json' \
+  -d '{"email": "test@example.com", "password": "test123"}'
+```
+
+## 📋 Environment Management
+
+### Available Scripts
+
+| Script                 | Description                   | Usage                 |
+| ---------------------- | ----------------------------- | --------------------- |
+| `npm run setup:dev`    | Setup development environment | First time dev setup  |
+| `npm run setup:prod`   | Setup production environment  | First time prod setup |
+| `npm run setup:local`  | Setup local environment       | Local testing         |
+| `npm run env:validate` | Validate environment setup    | Check configuration   |
+
+### Environment Files
+
+| File                      | Purpose                    | Tracked in Git     |
+| ------------------------- | -------------------------- | ------------------ |
+| `.env.sample`             | Local development template | ✅ Yes             |
+| `.env.development.sample` | Development template       | ✅ Yes             |
+| `.env.production.sample`  | Production template        | ✅ Yes             |
+| `.env`                    | Active environment file    | ❌ No (gitignored) |
+| `.env.development`        | Development overrides      | ❌ No (gitignored) |
+| `.env.production`         | Production overrides       | ❌ No (gitignored) |
+
+### Manual Environment Setup
+
+If you prefer manual setup:
+
+```bash
+# Development
+cp .env.development.sample .env.development
+cp .env.development.sample .env
+
+# Production
+cp .env.production.sample .env.production
+cp .env.production.sample .env
+# Remember to update all passwords and secrets!
+```
+
+## � Available Scripts
+
+### Environment & Setup
+
+```bash
+npm run setup:dev          # Setup development environment
+npm run setup:prod         # Setup production environment
+npm run setup:local        # Setup local environment
+npm run env:validate       # Validate environment configuration
+```
+
+### Development
+
+```bash
+pnpm dev                   # Run all services in development mode
+pnpm build                 # Build all packages
+pnpm test                  # Run tests across all packages
+pnpm lint                  # Lint all packages
+pnpm clean                 # Clean all build artifacts
+```
+
+### Docker Commands
+
+```bash
+# Development
+npm run docker:dev         # Start development containers
+npm run docker:dev:build   # Build and start development containers
+npm run docker:dev:down    # Stop development containers
+npm run docker:dev:logs    # View development logs
+
+# Production
+npm run docker:prod        # Start production containers
+npm run docker:prod:build  # Build and start production containers
+npm run docker:prod:down   # Stop production containers
+npm run docker:prod:logs   # View production logs
 ```
 
 ### Individual Service Commands
@@ -149,155 +183,326 @@ pnpm --filter @ecommerce/auth-service build
 pnpm --filter @ecommerce/auth-service test
 ```
 
-## 🔧 Configuration
+## � Services
 
-### Environment Files
+### 🔐 Auth Service (Port 3001)
 
-- `.env.development` - Global development settings
-- `apps/auth-service/.env.development` - Auth service config
-- `apps/users-service/.env` - Users service config
+**Features:**
 
-### Key Environment Variables
+- User registration & authentication
+- JWT token generation & validation
+- Password hashing with bcrypt
+- Kafka integration for user data requests
 
-```bash
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=service_user
-DB_PASSWORD=password
-DB_NAME=service_db
+**Endpoints:**
 
-# JWT
-JWT_SECRET=your-secret-key
-JWT_EXPIRY=24h
+- `POST /auth/signup` - User registration
+- `POST /auth/signin` - User authentication
+- `GET /health` - Health check
 
-# Kafka
-KAFKA_BROKERS=localhost:9092
+### 👤 Users Service (Port 3002)
 
-# Redis (auth-service only)
-REDIS_HOST=localhost
-REDIS_PORT=6379
+**Features:**
+
+- User profile management
+- User data CRUD operations
+- Kafka event handling
+- Database persistence
+
+**Endpoints:**
+
+- `GET /users/profile` - Get user profile
+- `PUT /users/profile` - Update user profile
+- `GET /users/all` - List all users
+- `GET /users/:id` - Get user by ID
+- `GET /health` - Health check
+
+### 🌐 Gateway (Port 80/8080)
+
+**Features:**
+
+- Nginx reverse proxy with load balancing
+- 2 replicas per service for high availability
+- Health checks and auto-recovery
+- Production-ready SSL termination support
+
+## 🏗️ Production Features
+
+### High Availability
+
+- **Service replicas**: 2 instances of each service
+- **Load balancing**: Nginx with round-robin
+- **Health checks**: 30s intervals with auto-restart
+- **Resource limits**: 512M memory, 0.5 CPU per service
+
+### Inter-Service Communication
+
+- **Kafka messaging**: Request-response pattern between services
+- **Database isolation**: Separate PostgreSQL databases per service
+- **Redis caching**: Shared cache for session management
+- **Service discovery**: Docker network with service names
+
+### Security & Configuration
+
+- **Environment isolation**: Separate dev/prod configurations
+- **Secret management**: Environment-based JWT secrets and passwords
+- **Container security**: Non-root users, minimal images
+- **Network isolation**: Internal Docker network communication
+
+## 🗄️ Database Schema
+
+### Auth Service Database (`auth_service`)
+
+```sql
+-- Users table with authentication data
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(50) DEFAULT 'user',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
 ```
 
-## 🗄️ Database
+### Users Service Database (`users_service`)
 
-### PostgreSQL Setup
-
-The database is automatically initialized with:
-
-- Separate databases for each service
-- User accounts with appropriate permissions
-- Initial schema setup
-
-### Database per Service
-
-- `auth_service` - Authentication data
-- `users_service` - User profiles and metadata
-
-## 📡 Message Queue
-
-### Kafka Events
-
-- `user.created` - New user registration
-- `user.updated` - User profile updates
-- `user.login` - User login events
-- `user.deleted` - User deletion
-
-## 🔍 Monitoring & Health Checks
-
-All services include:
-
-- Health check endpoints
-- Structured logging
-- Error handling
-- Request validation
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-pnpm test
-
-# Run tests with coverage
-pnpm test:cov
-
-# Run e2e tests
-pnpm test:e2e
-
-# Watch mode
-pnpm test:watch
+```sql
+-- Users table with profile data
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    name VARCHAR(255),
+    role VARCHAR(50) DEFAULT 'user',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
 ```
 
-## 📝 API Documentation
+## � Kafka Integration
 
-When services are running, API documentation is available at:
+### Message Flow
 
-- Auth Service: http://localhost:3001/api/docs
-- Users Service: http://localhost:3002/api/docs
-- Gateway: http://localhost:8080
+1. **Auth Service** sends user lookup requests to `user.lookup.request` topic
+2. **Users Service** responds via `auth_service_replies` topic
+3. **Timeout handling**: 15-second timeout with fallback data
+4. **Consumer groups**: `auth-consumer` and `users-consumer`
 
-## 🤝 Development Workflow
+### Event Types
 
-1. Make changes to shared packages in `packages/shared`
-2. The workspace automatically links shared packages to services
-3. Services hot-reload when shared code changes
-4. Use `pnpm build` to build all packages
-5. Use `pnpm dev` for development with hot reload
+- `user.lookup.request` - Request user data by email
+- `user.lookup.response` - Response with user profile data
 
-## 📦 Package Structure
+## 🔍 Monitoring & Health
 
-### Shared Package (`@ecommerce/shared`)
+### Health Checks
 
-- **DTOs**: Data transfer objects for API validation
-- **Types**: TypeScript interfaces and types
-- **Utils**: Common utility functions
-- **Constants**: Application constants and enums
+All services include comprehensive health monitoring:
+
+```bash
+# Check all services
+curl http://localhost/health
+
+# Individual service health
+curl http://localhost:3001/health  # Auth service
+curl http://localhost:3002/health  # Users service
+```
+
+### Docker Health Checks
+
+- **Interval**: 30 seconds
+- **Timeout**: 3 seconds
+- **Retries**: 3 attempts
+- **Start period**: 5 seconds grace period
+
+### Logging
+
+- **Development**: Debug level with detailed Kafka logs
+- **Production**: Info level with structured logging
+- **Container logs**: `docker-compose logs -f [service]`
+
+## 🧪 Testing the Application
+
+### Manual API Testing
+
+**1. Health Check:**
+
+```bash
+curl http://localhost/health
+# Expected: "healthy"
+```
+
+**2. User Signup:**
+
+```bash
+curl -X POST http://localhost/auth/signup \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "john@example.com",
+    "password": "securepass123"
+  }'
+# Expected: user object + JWT token
+```
+
+**3. User Signin:**
+
+```bash
+curl -X POST http://localhost/auth/signin \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "john@example.com",
+    "password": "securepass123"
+  }'
+# Expected: user object with profile data + JWT token
+```
+
+**4. Test Kafka Communication:**
+The signin endpoint tests the full Kafka request-response cycle:
+
+- Auth service requests user data from Users service
+- Users service queries database and responds via Kafka
+- Auth service receives response and returns complete user data
 
 ## 🚀 Deployment
 
-### Docker Production
+### Local Development
 
 ```bash
-# Build and start all services
-docker-compose up -d --build
-
-# Scale specific service
-docker-compose up -d --scale auth-service=3
+npm run setup:dev
+npm run docker:dev
 ```
 
-### Environment-specific Configs
+### Production Deployment
 
-- Development: `.env.development`
-- Production: `.env.production`
-- Testing: `.env.test`
+```bash
+npm run setup:prod
+# Update passwords and secrets in .env
+npm run env:validate
+npm run docker:prod
+```
 
-## 🔒 Security
+### Cloud Deployment (AWS EC2 Example)
 
-- JWT-based authentication
-- Password hashing with bcrypt
-- Environment variable configuration
-- CORS protection
-- Request validation
-- Rate limiting via nginx
+```bash
+# On EC2 instance
+git clone https://github.com/SHOMANS/ecommerce-ms-app.git
+cd ecommerce-ms-app
+npm run setup:prod
+# Update .env with production values
+npm run docker:prod
 
-## 📋 Todo
+# Configure security group for ports 80, 443
+```
 
-- [ ] Add API documentation with Swagger
-- [ ] Implement service discovery
-- [ ] Add monitoring with Prometheus
-- [ ] Set up CI/CD pipeline
-- [ ] Add integration tests
-- [ ] Implement caching strategies
-- [ ] Add logging aggregation
+## 🔒 Security Best Practices
+
+### Environment Security
+
+- ✅ **Sample files tracked**: Templates for easy setup
+- ✅ **Actual env files ignored**: Secrets protected from Git
+- ✅ **Production validation**: Script warns about default secrets
+- ✅ **Strong defaults**: Secure password requirements
+
+### Application Security
+
+- ✅ **JWT authentication**: Stateless token validation
+- ✅ **Password hashing**: bcrypt with configurable rounds
+- ✅ **Input validation**: NestJS DTOs and pipes
+- ✅ **CORS protection**: Configurable origins
+- ✅ **Container security**: Non-root users, minimal attack surface
+
+### Network Security
+
+- ✅ **Internal networking**: Services communicate via Docker network
+- ✅ **Database isolation**: Separate databases per service
+- ✅ **Load balancer**: Single entry point through nginx
+- ✅ **Health monitoring**: Automatic restart of failed services
+
+## � Documentation
+
+- **Environment Setup**: [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md)
+- **API Documentation**: Available when services are running
+- **Docker Reference**: [DOCKER.md](DOCKER.md)
+
+## 🛠️ Development Workflow
+
+### Adding New Features
+
+1. **Update shared packages** in `packages/shared` if needed
+2. **Modify service code** in `apps/[service-name]`
+3. **Test locally** with `npm run docker:dev`
+4. **Validate environment** with `npm run env:validate`
+5. **Deploy to production** with `npm run docker:prod`
+
+### Debugging Services
+
+```bash
+# View all service logs
+npm run docker:dev:logs
+
+# View specific service logs
+docker-compose logs -f auth-service
+docker-compose logs -f users-service
+
+# Execute commands in running containers
+docker-compose exec auth-service sh
+docker-compose exec users-service sh
+```
+
+## 📋 Troubleshooting
+
+### Common Issues
+
+**Environment not set up:**
+
+```bash
+npm run env:validate
+# Follow the recommendations
+```
+
+**Services failing to start:**
+
+```bash
+docker-compose logs [service-name]
+# Check for Kafka connection issues, database connectivity
+```
+
+**Kafka connection timeouts:**
+
+```bash
+# Restart Kafka and dependent services
+docker-compose restart kafka auth-service users-service
+```
+
+**Port conflicts:**
+
+```bash
+# Check if ports are in use
+lsof -i :80 -i :3001 -i :3002 -i :5432 -i :6379 -i :9092
+```
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Setup environment**: `npm run setup:dev`
+4. **Make your changes** and test locally
+5. **Validate setup**: `npm run env:validate`
+6. **Commit changes**: `git commit -m 'Add amazing feature'`
+7. **Push to branch**: `git push origin feature/amazing-feature`
+8. **Submit a pull request**
 
 ## 📄 License
 
-This project is licensed under the ISC License.
+This project is licensed under the ISC License - see the package.json file for details.
+
+---
+
+## 🆘 Need Help?
+
+- **Environment Issues**: Check [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md)
+- **Docker Problems**: Run `npm run env:validate`
+- **API Testing**: Use the curl examples above
+- **Service Communication**: Check Kafka logs with `docker-compose logs kafka`
+
+**Quick diagnosis:** `npm run env:validate && docker-compose ps`
