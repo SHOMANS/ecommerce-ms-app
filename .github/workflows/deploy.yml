@@ -1,4 +1,4 @@
-name: Auto Deploy to EC2
+name: Deploy to Production
 
 on:
   workflow_run:
@@ -6,124 +6,240 @@ on:
     types:
       - completed
     branches: [main]
-
   workflow_dispatch:
-    inputs:
-      environment:
-        description: "Environment to deploy to"
-        required: true
-        default: "production"
-        type: choice
-        options:
-          - production
-          - staging
-
-env:
-  EC2_HOST: ${{ secrets.EC2_HOST }}
-  EC2_USER: ${{ secrets.EC2_USER }}
-  EC2_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
 
 jobs:
   deploy:
     name: Deploy to EC2
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    environment: production
+    timeout-minutes: 20
 
-    environment:
-      name: ${{ github.event.inputs.environment || 'production' }}
-      url: ${{ vars.DEPLOYMENT_URL }}
+    env:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USER: ${{ secrets.EC2_USER }}
+      EC2_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Validate deployment secrets
+        run: |
+          if [ -z "${{ secrets.EC2_HOST }}" ] || [ -z "${{ secrets.EC2_USER }}" ] || [ -z "${{ secrets.EC2_PRIVATE_KEY }}" ]; then
+            echo "❌ Missing required deployment secrets:"
+            echo "   - EC2_HOST: ${{ secrets.EC2_HOST != '' && '✅ Set' || '❌ Missing' }}"
+            echo "   - EC2_USER: ${{ secrets.EC2_USER != '' && '✅ Set' || '❌ Missing' }}"
+            echo "   - EC2_PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY != '' && '✅ Set' || '❌ Missing' }}"
+            echo ""
+            echo "📝 To configure deployment secrets:"
+            echo "   1. Go to repository Settings > Secrets and variables > Actions"
+            echo "   2. Add the following secrets:"
+            echo "      - EC2_HOST: Your EC2 instance IP or domain"
+            echo "      - EC2_USER: SSH username (usually 'ubuntu' or 'ec2-user')"
+            echo "      - EC2_PRIVATE_KEY: Your private SSH key content"
+            echo ""
+            echo "⚠️  Deployment will be skipped until secrets are configured."
+            exit 0
+          fi
+
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          
+          # Write SSH key and ensure proper format
+          echo "${{ secrets.EC2_PRIVATE_KEY }}" > ~/.ssh/deploy_key.tmp
+          
+          # Remove any carriage returns and ensure proper line endings
+          tr -d '\r' < ~/.ssh/deploy_key.tmp > ~/.ssh/deploy_key
+          
+          # Ensure the key starts and ends properly
+          if ! grep -q "BEGIN.*PRIVATE KEY" ~/.ssh/deploy_key; then
+            echo "❌ SSH key format appears invalid"
+            echo "🔧 Ensure your EC2_PRIVATE_KEY secret contains the full private key including:"
+            echo "   -----BEGIN OPENSSH PRIVATE KEY-----"
+            echo "   [key content]"
+            echo "   -----END OPENSSH PRIVATE KEY-----"
+            exit 1
+          fi
+          
+          # Set proper permissions
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          
+          # Test SSH key format
+          echo "🔍 Validating SSH key format..."
+          ssh-keygen -l -f ~/.ssh/deploy_key || {
+            echo "❌ SSH key validation failed"
+            echo "🔧 Please check that EC2_PRIVATE_KEY contains a valid OpenSSH private key"
+            exit 1
+          }
+          
+          # Add host to known_hosts
+          echo "🔑 Adding ${{ secrets.EC2_HOST }} to known hosts..."
+          ssh-keyscan -t rsa,ecdsa,ed25519 -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || {
+            echo "⚠️  Could not add host to known_hosts, but continuing..."
+          }
+          
+          # Test SSH connection
+          echo "🔗 Testing SSH connection..."
+          ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'SSH connection successful'" || {
+            echo "❌ SSH connection test failed"
+            echo "🔧 Troubleshooting tips:"
+            echo "   1. Verify EC2_HOST is correct and accessible"
+            echo "   2. Verify EC2_USER is correct (usually 'ubuntu', 'ec2-user', or 'admin')"
+            echo "   3. Ensure the public key is added to ~/.ssh/authorized_keys on the EC2 instance"
+            echo "   4. Check EC2 Security Groups allow SSH (port 22) from GitHub Actions IPs"
+            echo "   5. Verify the private key matches the public key on the server"
+            exit 1
+          }
+          
+          # Clean up temporary file
+          rm -f ~/.ssh/deploy_key.tmp
 
       - name: Deploy to EC2
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
+          echo "🚀 Starting deployment to EC2..."
+          
+          # Use SSH with proper options to avoid pseudo-terminal issues
+          ssh -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              -o ConnectTimeout=30 \
+              -o ServerAliveInterval=60 \
+              -o ServerAliveCountMax=3 \
+              -i ~/.ssh/deploy_key \
+              ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
+              'bash -s' << 'ENDSSH'
             set -e
             
-            echo "Starting deployment..."
+            echo "🔄 Starting deployment on EC2 instance..."
             
             # Navigate to project directory
-            cd ~/ecommerce-ms-app || {
-              echo "Project directory not found"
-              exit 1
-            }
-            
-            # Update code
-            echo "Updating code from GitHub..."
-            git fetch origin
-            git reset --hard origin/main
-            
-            # Stop current services
-            echo "Stopping current services..."
-            docker compose down --remove-orphans || true
-            
-            # Cleanup old images
-            echo "Cleaning up old images..."
-            docker system prune -f || true
-            
-            # Setup production environment
-            echo "Setting up production environment..."
-            chmod +x scripts/setup-env.sh
-            ./scripts/setup-env.sh prod
-            
-            # Build and start new services
-            echo "Building and starting services..."
-            docker compose up --build -d
-            
-            # Wait for services to be ready
-            echo "Waiting for services to start..."
-            sleep 60
-            
-            # Test services
-            echo "Testing services..."
-            if curl -f http://localhost/health; then
-              echo "✅ Deployment successful - Services are running"
-            else
-              echo "❌ Deployment failed - Services are not running"
-              docker compose logs --tail=50
-              exit 1
+            if [ ! -d "~/ecommerce-ms-app" ]; then
+              echo "📁 Project directory not found. Cloning repository..."
+              git clone https://github.com/SHOMANS/ecommerce-ms-app.git ~/ecommerce-ms-app
             fi
             
-            # Show container status
-            echo "Container status:"
+            cd ~/ecommerce-ms-app
+            
+            # Update code
+            echo "📥 Updating code from GitHub..."
+            git fetch origin --prune
+            git reset --hard origin/main
+            git clean -fd
+            
+            # Stop current services
+            echo "🛑 Stopping current services..."
+            docker compose down --remove-orphans --timeout 30 2>/dev/null || true
+            
+            # Cleanup old images and containers
+            echo "🧹 Cleaning up old containers and images..."
+            docker container prune -f 2>/dev/null || true
+            docker image prune -f 2>/dev/null || true
+            
+            # Check if setup script exists
+            if [ -f "scripts/setup-env.sh" ]; then
+              echo "⚙️  Setting up production environment..."
+              chmod +x scripts/setup-env.sh
+              ./scripts/setup-env.sh prod
+            else
+              echo "⚠️  Setup script not found, skipping environment setup"
+            fi
+            
+            # Build and start new services
+            echo "🏗️  Building and starting services..."
+            docker compose up --build -d --remove-orphans
+            
+            # Wait for services to be ready
+            echo "⏳ Waiting for services to start..."
+            sleep 30
+            
+            # Check if services are running
+            echo "🔍 Checking container status..."
             docker compose ps
             
+            # Test services with retry
+            echo "🧪 Testing services..."
+            for i in {1..5}; do
+              if curl -f --connect-timeout 5 --max-time 10 http://localhost/health 2>/dev/null; then
+                echo "✅ Deployment successful - Services are running (attempt $i)"
+                break
+              else
+                if [ $i -eq 5 ]; then
+                  echo "❌ Deployment failed - Services are not responding after 5 attempts"
+                  echo "📋 Container logs:"
+                  docker compose logs --tail=20
+                  echo "📊 Container status:"
+                  docker compose ps
+                  exit 1
+                fi
+                echo "⏳ Services not ready yet, retrying in 10 seconds... (attempt $i/5)"
+                sleep 10
+              fi
+            done
+            
             echo "🎉 Deployment completed successfully!"
+            echo "📊 Final container status:"
+            docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
           ENDSSH
 
       - name: Health Check After Deployment
         run: |
-          echo "Checking service health after deployment..."
+          echo "🔍 Checking service health after deployment..."
 
           # Additional wait to ensure services are ready
+          echo "⏳ Waiting 30 seconds for services to stabilize..."
           sleep 30
 
-          # Test services from external
-          if curl -f http://${{ secrets.EC2_HOST }}/health; then
-            echo "✅ Services are running correctly from external"
-          else
-            echo "❌ Services not accessible from external - check Security Groups"
-            exit 1
-          fi
+          # Test services from external with retry logic
+          echo "🌐 Testing external connectivity..."
+          MAX_ATTEMPTS=5
+          ATTEMPT=1
+          
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS..."
+            
+            if curl -f --connect-timeout 10 --max-time 30 http://${{ secrets.EC2_HOST }}/health; then
+              echo "✅ Services are running correctly from external!"
+              break
+            else
+              if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+                echo "❌ Services not accessible from external after $MAX_ATTEMPTS attempts"
+                echo "🔧 Possible issues:"
+                echo "   - Security Groups not configured (port 80/443)"
+                echo "   - Services not fully started"
+                echo "   - Network connectivity issues"
+                exit 1
+              fi
+              echo "⏳ Retrying in 15 seconds..."
+              sleep 15
+            fi
+            
+            ATTEMPT=$((ATTEMPT + 1))
+          done
 
       - name: Deployment Notification
         if: always()
         run: |
-          if [ $? -eq 0 ]; then
-            echo "🎉 Deployment to production successful!"
-            echo "🌐 URL: http://${{ secrets.EC2_HOST }}"
-            echo "⏰ Time: $(date)"
-            echo "📝 Commit: ${{ github.sha }}"
+          echo "📊 === DEPLOYMENT SUMMARY ==="
+          echo "⏰ Time: $(date)"
+          echo "📝 Commit: ${{ github.sha }}"
+          echo "🌿 Branch: ${{ github.ref_name }}"
+          echo "👤 Author: ${{ github.actor }}"
+          echo ""
+          
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "🎉 DEPLOYMENT SUCCESSFUL!"
+            echo "🌐 Application URL: http://${{ secrets.EC2_HOST }}"
+            echo "🔍 Health Check: http://${{ secrets.EC2_HOST }}/health"
+            echo "📚 API Docs: http://${{ secrets.EC2_HOST }}/api"
           else
-            echo "❌ Deployment failed!"
-            echo "🔧 Please check logs"
+            echo "❌ DEPLOYMENT FAILED!"
+            echo "🔧 Troubleshooting tips:"
+            echo "   1. Check GitHub Actions logs for detailed error messages"
+            echo "   2. Verify EC2 instance is running and accessible"
+            echo "   3. Ensure Docker and Docker Compose are installed on EC2"
+            echo "   4. Check Security Groups allow inbound traffic on port 80"
+            echo "   5. Verify SSH key permissions and connectivity"
           fi
+          echo "=========================="
