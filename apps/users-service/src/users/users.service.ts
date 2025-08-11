@@ -7,7 +7,6 @@ import { Repository } from 'typeorm';
 import {
   UserCreatedEvent,
   UpdateUserDto,
-  UserResponseDto,
   JwtPayload,
   ProfileResponseDto,
   UserLookupRequestEvent,
@@ -68,10 +67,7 @@ export class UsersService {
     };
   }
 
-  async updateProfile(
-    id: string,
-    updateData: UpdateUserDto,
-  ): Promise<UserResponseDto> {
+  async updateProfile(id: string, updateData: UpdateUserDto) {
     const user = await this.userRepo.findOne({ where: { id } });
     if (!user) {
       throw new NotFoundException('User not found');
@@ -82,12 +78,12 @@ export class UsersService {
     return this.mapToResponse(updatedUser);
   }
 
-  async getAllUsers(): Promise<UserResponseDto[]> {
+  async getAllUsers() {
     const users = await this.userRepo.find();
     return users.map((user) => this.mapToResponse(user));
   }
 
-  async getUserById(id: string): Promise<UserResponseDto> {
+  async getUserById(id: string) {
     const user = await this.userRepo.findOne({ where: { id } });
     if (!user) {
       throw new NotFoundException('User not found');
@@ -95,20 +91,17 @@ export class UsersService {
     return this.mapToResponse(user);
   }
 
-  async findAll(): Promise<UserResponseDto[]> {
+  async findAll() {
     const users = await this.userRepo.find();
     return users.map((user) => this.mapToResponse(user));
   }
 
-  async findOne(id: string): Promise<UserResponseDto | null> {
+  async findOne(id: string) {
     const user = await this.userRepo.findOne({ where: { id } });
     return user ? this.mapToResponse(user) : null;
   }
 
-  async updateUser(
-    id: string,
-    updateData: UpdateUserDto,
-  ): Promise<UserResponseDto | null> {
+  async updateUser(id: string, updateData: UpdateUserDto) {
     const user = await this.userRepo.findOne({ where: { id } });
     if (!user) {
       return null;
@@ -124,9 +117,7 @@ export class UsersService {
     return (result.affected ?? 0) > 0;
   }
 
-  async handleUserLookupRequest(
-    data: UserLookupRequestEvent,
-  ): Promise<UserResponseDto> {
+  async handleUserLookupRequest(data: UserLookupRequestEvent) {
     const user = await this.userRepo.findOne({
       where: { id: data.userId },
     });
@@ -136,7 +127,7 @@ export class UsersService {
     return this.mapToResponse(user);
   }
 
-  private mapToResponse(user: User): UserResponseDto {
+  private mapToResponse(user: User) {
     return {
       id: user.id,
       email: user.email,

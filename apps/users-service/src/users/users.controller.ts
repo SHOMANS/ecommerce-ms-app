@@ -10,7 +10,6 @@ import {
 import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
 import {
   UpdateUserDto,
-  UserResponseDto,
   ProfileResponseDto,
   JwtAuthGuard,
   RolesGuard,
@@ -35,9 +34,7 @@ export class UsersController {
   }
 
   @MessagePattern(KAFKA_EVENTS.USER_LOOKUP_REQUEST)
-  async handleUserLookupRequest(
-    @Payload() data: UserLookupRequestEvent,
-  ): Promise<UserResponseDto | null> {
+  async handleUserLookupRequest(@Payload() data: UserLookupRequestEvent) {
     console.log(data);
     return this.usersService.handleUserLookupRequest(data);
   }
@@ -56,21 +53,21 @@ export class UsersController {
   async updateProfile(
     @Request() req: AuthenticatedRequest,
     @Body() updateUserDto: UpdateUserDto,
-  ): Promise<UserResponseDto> {
+  ) {
     return this.usersService.updateProfile(req.user.userId, updateUserDto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   @Get('all')
-  async getAllUsers(): Promise<UserResponseDto[]> {
+  async getAllUsers() {
     return this.usersService.getAllUsers();
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   @Get(':id')
-  async getUserById(@Param('id') id: string): Promise<UserResponseDto> {
+  async getUserById(@Param('id') id: string) {
     return this.usersService.getUserById(id);
   }
 }
