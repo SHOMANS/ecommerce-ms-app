@@ -1,4 +1,5 @@
 # GitHub Secrets Configuration Guide
+
 # دليل إعداد الأسرار في GitHub للـ CI/CD Pipeline
 
 ## Required Secrets for CI/CD Pipeline
@@ -12,7 +13,7 @@ EC2_HOST
 - Description: عنوان IP أو hostname للخادم EC2
 - Example: ec2-52-14-98-152.us-east-2.compute.amazonaws.com
 
-EC2_USER  
+EC2_USER
 - Description: اسم المستخدم للاتصال بالخادم
 - Example: ubuntu
 
@@ -107,6 +108,7 @@ ssh -i ~/.ssh/deploy_key $EC2_USER@$EC2_HOST "echo 'Connection successful'"
 ## Environment-specific Configurations
 
 ### Development Environment
+
 ```yaml
 environment: development
 secrets:
@@ -116,6 +118,7 @@ secrets:
 ```
 
 ### Production Environment
+
 ```yaml
 environment: production
 secrets:

@@ -60,6 +60,7 @@ npm run setup:local
 ## 🔄 CI/CD Pipeline
 
 This project includes a comprehensive CI/CD pipeline that automatically:
+
 - **Watches for changes** and triggers builds
 - **Runs tests** and code quality checks
 - **Builds Docker images** and publishes them
@@ -68,12 +69,12 @@ This project includes a comprehensive CI/CD pipeline that automatically:
 
 ### 🚀 GitHub Actions Workflows
 
-| Workflow | Trigger | Purpose |
-|----------|---------|---------|
-| **CI/CD Pipeline** | Push to any branch, PR to main | Test, build, and deploy |
-| **File Watcher** | Push to main, file changes | Monitor performance and validate changes |
-| **Auto Deploy** | Successful CI/CD completion | Deploy to EC2 production server |
-| **Release Management** | Push to main (with changes) | Create releases and publish Docker images |
+| Workflow               | Trigger                        | Purpose                                   |
+| ---------------------- | ------------------------------ | ----------------------------------------- |
+| **CI/CD Pipeline**     | Push to any branch, PR to main | Test, build, and deploy                   |
+| **File Watcher**       | Push to main, file changes     | Monitor performance and validate changes  |
+| **Auto Deploy**        | Successful CI/CD completion    | Deploy to EC2 production server           |
+| **Release Management** | Push to main (with changes)    | Create releases and publish Docker images |
 
 ### 📋 Pipeline Features
 
@@ -123,7 +124,7 @@ See [.github/SECRETS.md](.github/SECRETS.md) for detailed setup instructions.
 
 - **Automatic version detection** based on commit messages:
   - `feat:` or `feature:` → Minor version bump
-  - `fix:` or `bugfix:` → Patch version bump  
+  - `fix:` or `bugfix:` → Patch version bump
   - `BREAKING:` or `major:` → Major version bump
 - **Automated changelog generation**
 - **Docker image tagging** with version numbers
@@ -139,7 +140,7 @@ The pipeline includes comprehensive testing:
 - TypeScript compilation
 - Unit tests with coverage
 
-# Integration testing  
+# Integration testing
 - Docker container builds
 - Service health checks
 - API endpoint testing

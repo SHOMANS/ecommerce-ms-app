@@ -4,218 +4,218 @@ name: File Watcher & Hot Reload
 on:
   push:
     paths:
-      - 'apps/**'
-      - 'packages/**'
-      - 'docker-compose*.yml'
-      - 'package.json'
-      - '.env*.sample'
-      - 'scripts/**'
-  
+      - "apps/**"
+      - "packages/**"
+      - "docker-compose*.yml"
+      - "package.json"
+      - ".env*.sample"
+      - "scripts/**"
+
   schedule:
     # فحص دوري كل ساعة
-    - cron: '0 * * * *'
-  
+    - cron: "0 * * * *"
+
   workflow_dispatch:
 
 jobs:
   watch-and-validate:
     name: Watch Files & Validate
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 2
-        
-    - name: 🔍 Detect changed files
-      id: changes
-      run: |
-        echo "Detecting changes..."
-        
-        # الحصول على قائمة الملفات المتغيرة
-        if [ "${{ github.event_name }}" = "push" ]; then
-          changed_files=$(git diff --name-only HEAD^ HEAD)
-        else
-          # للفحص الدوري، فحص جميع الملفات
-          changed_files="all"
-        fi
-        
-        echo "Changed files:"
-        echo "$changed_files"
-        
-        # تحديد نوع التغييرات
-        if echo "$changed_files" | grep -q "apps/"; then
-          echo "apps_changed=true" >> $GITHUB_OUTPUT
-        fi
-        
-        if echo "$changed_files" | grep -q "packages/"; then
-          echo "packages_changed=true" >> $GITHUB_OUTPUT
-        fi
-        
-        if echo "$changed_files" | grep -q "docker-compose"; then
-          echo "docker_changed=true" >> $GITHUB_OUTPUT
-        fi
-        
-        if echo "$changed_files" | grep -q "scripts/"; then
-          echo "scripts_changed=true" >> $GITHUB_OUTPUT
-        fi
-        
-        if echo "$changed_files" | grep -q ".env"; then
-          echo "env_changed=true" >> $GITHUB_OUTPUT
-        fi
-        
-    - name: 🟢 Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        
-    - name: 📦 Install dependencies
-      run: |
-        npm install -g pnpm
-        pnpm install --frozen-lockfile
-        
-    - name: 🔧 Validate environment setup
-      if: steps.changes.outputs.env_changed == 'true' || steps.changes.outputs.scripts_changed == 'true'
-      run: |
-        echo "🔍 Validating environment setup scripts..."
-        chmod +x scripts/*.sh
-        
-        # اختبار سكريبت الإعداد
-        ./scripts/setup-env.sh dev
-        ./scripts/validate-env.sh
-        
-    - name: 🏗️ Quick build test
-      if: steps.changes.outputs.apps_changed == 'true' || steps.changes.outputs.packages_changed == 'true'
-      run: |
-        echo "🏗️ Testing build process..."
-        pnpm --filter @ecommerce/shared build
-        pnpm --filter @ecommerce/auth-service build
-        pnpm --filter @ecommerce/users-service build
-        
-    - name: 🐳 Docker validation
-      if: steps.changes.outputs.docker_changed == 'true'
-      run: |
-        echo "🐳 Validating Docker configuration..."
-        
-        # التحقق من صحة docker-compose files
-        docker-compose -f docker-compose.yml config
-        docker-compose -f docker-compose.dev.yml config
-        
-        # اختبار بناء سريع
-        docker-compose -f docker-compose.dev.yml build --no-cache auth-service
-        
-    - name: 📊 Generate change report
-      run: |
-        echo "📊 Change Report" >> change_report.md
-        echo "================" >> change_report.md
-        echo "" >> change_report.md
-        echo "**Commit:** ${{ github.sha }}" >> change_report.md
-        echo "**Branch:** ${{ github.ref }}" >> change_report.md
-        echo "**Time:** $(date)" >> change_report.md
-        echo "" >> change_report.md
-        
-        if [ "${{ steps.changes.outputs.apps_changed }}" = "true" ]; then
-          echo "- 🔄 Applications changed" >> change_report.md
-        fi
-        
-        if [ "${{ steps.changes.outputs.packages_changed }}" = "true" ]; then
-          echo "- 📦 Shared packages changed" >> change_report.md
-        fi
-        
-        if [ "${{ steps.changes.outputs.docker_changed }}" = "true" ]; then
-          echo "- 🐳 Docker configuration changed" >> change_report.md
-        fi
-        
-        if [ "${{ steps.changes.outputs.scripts_changed }}" = "true" ]; then
-          echo "- 🔧 Scripts changed" >> change_report.md
-        fi
-        
-        if [ "${{ steps.changes.outputs.env_changed }}" = "true" ]; then
-          echo "- ⚙️ Environment files changed" >> change_report.md
-        fi
-        
-        echo "" >> change_report.md
-        echo "**Status:** ✅ All validations passed" >> change_report.md
-        
-        cat change_report.md
-        
-    - name: 📤 Upload change report
-      uses: actions/upload-artifact@v4
-      with:
-        name: change-report-${{ github.sha }}
-        path: change_report.md
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: 🔍 Detect changed files
+        id: changes
+        run: |
+          echo "Detecting changes..."
+
+          # الحصول على قائمة الملفات المتغيرة
+          if [ "${{ github.event_name }}" = "push" ]; then
+            changed_files=$(git diff --name-only HEAD^ HEAD)
+          else
+            # للفحص الدوري، فحص جميع الملفات
+            changed_files="all"
+          fi
+
+          echo "Changed files:"
+          echo "$changed_files"
+
+          # تحديد نوع التغييرات
+          if echo "$changed_files" | grep -q "apps/"; then
+            echo "apps_changed=true" >> $GITHUB_OUTPUT
+          fi
+
+          if echo "$changed_files" | grep -q "packages/"; then
+            echo "packages_changed=true" >> $GITHUB_OUTPUT
+          fi
+
+          if echo "$changed_files" | grep -q "docker-compose"; then
+            echo "docker_changed=true" >> $GITHUB_OUTPUT
+          fi
+
+          if echo "$changed_files" | grep -q "scripts/"; then
+            echo "scripts_changed=true" >> $GITHUB_OUTPUT
+          fi
+
+          if echo "$changed_files" | grep -q ".env"; then
+            echo "env_changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: 📦 Install dependencies
+        run: |
+          npm install -g pnpm
+          pnpm install --frozen-lockfile
+
+      - name: 🔧 Validate environment setup
+        if: steps.changes.outputs.env_changed == 'true' || steps.changes.outputs.scripts_changed == 'true'
+        run: |
+          echo "🔍 Validating environment setup scripts..."
+          chmod +x scripts/*.sh
+
+          # اختبار سكريبت الإعداد
+          ./scripts/setup-env.sh dev
+          ./scripts/validate-env.sh
+
+      - name: 🏗️ Quick build test
+        if: steps.changes.outputs.apps_changed == 'true' || steps.changes.outputs.packages_changed == 'true'
+        run: |
+          echo "🏗️ Testing build process..."
+          pnpm --filter @ecommerce/shared build
+          pnpm --filter @ecommerce/auth-service build
+          pnpm --filter @ecommerce/users-service build
+
+      - name: 🐳 Docker validation
+        if: steps.changes.outputs.docker_changed == 'true'
+        run: |
+          echo "🐳 Validating Docker configuration..."
+
+          # التحقق من صحة docker-compose files
+          docker-compose -f docker-compose.yml config
+          docker-compose -f docker-compose.dev.yml config
+
+          # اختبار بناء سريع
+          docker-compose -f docker-compose.dev.yml build --no-cache auth-service
+
+      - name: 📊 Generate change report
+        run: |
+          echo "📊 Change Report" >> change_report.md
+          echo "================" >> change_report.md
+          echo "" >> change_report.md
+          echo "**Commit:** ${{ github.sha }}" >> change_report.md
+          echo "**Branch:** ${{ github.ref }}" >> change_report.md
+          echo "**Time:** $(date)" >> change_report.md
+          echo "" >> change_report.md
+
+          if [ "${{ steps.changes.outputs.apps_changed }}" = "true" ]; then
+            echo "- 🔄 Applications changed" >> change_report.md
+          fi
+
+          if [ "${{ steps.changes.outputs.packages_changed }}" = "true" ]; then
+            echo "- 📦 Shared packages changed" >> change_report.md
+          fi
+
+          if [ "${{ steps.changes.outputs.docker_changed }}" = "true" ]; then
+            echo "- 🐳 Docker configuration changed" >> change_report.md
+          fi
+
+          if [ "${{ steps.changes.outputs.scripts_changed }}" = "true" ]; then
+            echo "- 🔧 Scripts changed" >> change_report.md
+          fi
+
+          if [ "${{ steps.changes.outputs.env_changed }}" = "true" ]; then
+            echo "- ⚙️ Environment files changed" >> change_report.md
+          fi
+
+          echo "" >> change_report.md
+          echo "**Status:** ✅ All validations passed" >> change_report.md
+
+          cat change_report.md
+
+      - name: 📤 Upload change report
+        uses: actions/upload-artifact@v4
+        with:
+          name: change-report-${{ github.sha }}
+          path: change_report.md
 
   performance-monitor:
     name: Performance Monitoring
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
     steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-      
-    - name: 🔧 Setup environment
-      run: |
-        chmod +x scripts/setup-env.sh
-        ./scripts/setup-env.sh dev
-        
-    - name: 🚀 Start services for monitoring
-      run: |
-        docker-compose -f docker-compose.dev.yml up -d
-        sleep 45
-        
-    - name: 📊 Performance benchmarks
-      run: |
-        echo "📊 Running performance benchmarks..."
-        
-        # اختبار زمن الاستجابة
-        echo "🔍 Testing response times..."
-        
-        # Health check response time
-        health_time=$(curl -o /dev/null -s -w '%{time_total}\n' http://localhost:8080/health)
-        echo "Health check response time: ${health_time}s"
-        
-        # Signup response time
-        signup_data='{"email":"perf-test@example.com","password":"test123"}'
-        signup_time=$(curl -o /dev/null -s -w '%{time_total}\n' \
-          -X POST -H "Content-Type: application/json" \
-          -d "$signup_data" http://localhost:8080/auth/signup)
-        echo "Signup response time: ${signup_time}s"
-        
-        # Signin response time (tests Kafka communication)
-        signin_time=$(curl -o /dev/null -s -w '%{time_total}\n' \
-          -X POST -H "Content-Type: application/json" \
-          -d "$signup_data" http://localhost:8080/auth/signin)
-        echo "Signin response time: ${signin_time}s"
-        
-        # إنشاء تقرير الأداء
-        echo "📊 Performance Report" > performance_report.md
-        echo "====================" >> performance_report.md
-        echo "" >> performance_report.md
-        echo "- Health Check: ${health_time}s" >> performance_report.md
-        echo "- User Signup: ${signup_time}s" >> performance_report.md
-        echo "- User Signin: ${signin_time}s" >> performance_report.md
-        echo "" >> performance_report.md
-        
-        # تحديد إذا كان الأداء مقبول
-        if (( $(echo "$health_time < 1.0" | bc -l) )) && \
-           (( $(echo "$signup_time < 2.0" | bc -l) )) && \
-           (( $(echo "$signin_time < 3.0" | bc -l) )); then
-          echo "**Status:** ✅ Performance within acceptable limits" >> performance_report.md
-        else
-          echo "**Status:** ⚠️ Performance degradation detected" >> performance_report.md
-        fi
-        
-        cat performance_report.md
-        
-    - name: 🧹 Cleanup
-      if: always()
-      run: docker-compose -f docker-compose.dev.yml down
-        
-    - name: 📤 Upload performance report
-      uses: actions/upload-artifact@v4
-      with:
-        name: performance-report-${{ github.sha }}
-        path: performance_report.md
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup environment
+        run: |
+          chmod +x scripts/setup-env.sh
+          ./scripts/setup-env.sh dev
+
+      - name: 🚀 Start services for monitoring
+        run: |
+          docker-compose -f docker-compose.dev.yml up -d
+          sleep 45
+
+      - name: 📊 Performance benchmarks
+        run: |
+          echo "📊 Running performance benchmarks..."
+
+          # اختبار زمن الاستجابة
+          echo "🔍 Testing response times..."
+
+          # Health check response time
+          health_time=$(curl -o /dev/null -s -w '%{time_total}\n' http://localhost:8080/health)
+          echo "Health check response time: ${health_time}s"
+
+          # Signup response time
+          signup_data='{"email":"perf-test@example.com","password":"test123"}'
+          signup_time=$(curl -o /dev/null -s -w '%{time_total}\n' \
+            -X POST -H "Content-Type: application/json" \
+            -d "$signup_data" http://localhost:8080/auth/signup)
+          echo "Signup response time: ${signup_time}s"
+
+          # Signin response time (tests Kafka communication)
+          signin_time=$(curl -o /dev/null -s -w '%{time_total}\n' \
+            -X POST -H "Content-Type: application/json" \
+            -d "$signup_data" http://localhost:8080/auth/signin)
+          echo "Signin response time: ${signin_time}s"
+
+          # إنشاء تقرير الأداء
+          echo "📊 Performance Report" > performance_report.md
+          echo "====================" >> performance_report.md
+          echo "" >> performance_report.md
+          echo "- Health Check: ${health_time}s" >> performance_report.md
+          echo "- User Signup: ${signup_time}s" >> performance_report.md
+          echo "- User Signin: ${signin_time}s" >> performance_report.md
+          echo "" >> performance_report.md
+
+          # تحديد إذا كان الأداء مقبول
+          if (( $(echo "$health_time < 1.0" | bc -l) )) && \
+             (( $(echo "$signup_time < 2.0" | bc -l) )) && \
+             (( $(echo "$signin_time < 3.0" | bc -l) )); then
+            echo "**Status:** ✅ Performance within acceptable limits" >> performance_report.md
+          else
+            echo "**Status:** ⚠️ Performance degradation detected" >> performance_report.md
+          fi
+
+          cat performance_report.md
+
+      - name: 🧹 Cleanup
+        if: always()
+        run: docker-compose -f docker-compose.dev.yml down
+
+      - name: 📤 Upload performance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report-${{ github.sha }}
+          path: performance_report.md

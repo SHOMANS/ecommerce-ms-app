@@ -7,18 +7,18 @@ on:
     types:
       - completed
     branches: [main]
-  
+
   # تشغيل يدوي للنشر
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to deploy to'
+        description: "Environment to deploy to"
         required: true
-        default: 'production'
+        default: "production"
         type: choice
         options:
-        - production
-        - staging
+          - production
+          - staging
 
 env:
   EC2_HOST: ${{ secrets.EC2_HOST }}
@@ -30,102 +30,102 @@ jobs:
     name: Deploy to EC2
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
-    
-    environment: 
+
+    environment:
       name: ${{ github.event.inputs.environment || 'production' }}
       url: ${{ vars.DEPLOYMENT_URL }}
-    
+
     steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-      
-    - name: 🔧 Setup SSH key
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-        chmod 600 ~/.ssh/deploy_key
-        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-        
-    - name: 🚀 Deploy to EC2
-      run: |
-        ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
-          set -e
-          
-          echo "🔄 بدء عملية النشر..."
-          
-          # الانتقال إلى مجلد المشروع
-          cd ~/ecommerce-ms-app || {
-            echo "❌ مجلد المشروع غير موجود"
-            exit 1
-          }
-          
-          # تحديث الكود
-          echo "📥 تحديث الكود من GitHub..."
-          git fetch origin
-          git reset --hard origin/main
-          
-          # إيقاف الخدمات الحالية
-          echo "⏹️ إيقاف الخدمات الحالية..."
-          docker-compose down --remove-orphans || true
-          
-          # تنظيف الـ images القديمة
-          echo "🧹 تنظيف الـ images القديمة..."
-          docker system prune -f || true
-          
-          # إعداد البيئة للإنتاج
-          echo "🔧 إعداد بيئة الإنتاج..."
-          chmod +x scripts/setup-env.sh
-          ./scripts/setup-env.sh prod
-          
-          # بناء وتشغيل الخدمات الجديدة
-          echo "🏗️ بناء وتشغيل الخدمات..."
-          docker-compose up --build -d
-          
-          # انتظار حتى تصبح الخدمات جاهزة
-          echo "⏳ انتظار تشغيل الخدمات..."
-          sleep 60
-          
-          # اختبار الخدمات
-          echo "🧪 اختبار الخدمات..."
-          if curl -f http://localhost/health; then
-            echo "✅ النشر نجح - الخدمات تعمل"
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: 🚀 Deploy to EC2
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
+            set -e
+            
+            echo "🔄 بدء عملية النشر..."
+            
+            # الانتقال إلى مجلد المشروع
+            cd ~/ecommerce-ms-app || {
+              echo "❌ مجلد المشروع غير موجود"
+              exit 1
+            }
+            
+            # تحديث الكود
+            echo "📥 تحديث الكود من GitHub..."
+            git fetch origin
+            git reset --hard origin/main
+            
+            # إيقاف الخدمات الحالية
+            echo "⏹️ إيقاف الخدمات الحالية..."
+            docker-compose down --remove-orphans || true
+            
+            # تنظيف الـ images القديمة
+            echo "🧹 تنظيف الـ images القديمة..."
+            docker system prune -f || true
+            
+            # إعداد البيئة للإنتاج
+            echo "🔧 إعداد بيئة الإنتاج..."
+            chmod +x scripts/setup-env.sh
+            ./scripts/setup-env.sh prod
+            
+            # بناء وتشغيل الخدمات الجديدة
+            echo "🏗️ بناء وتشغيل الخدمات..."
+            docker-compose up --build -d
+            
+            # انتظار حتى تصبح الخدمات جاهزة
+            echo "⏳ انتظار تشغيل الخدمات..."
+            sleep 60
+            
+            # اختبار الخدمات
+            echo "🧪 اختبار الخدمات..."
+            if curl -f http://localhost/health; then
+              echo "✅ النشر نجح - الخدمات تعمل"
+            else
+              echo "❌ النشر فشل - الخدمات لا تعمل"
+              docker-compose logs --tail=50
+              exit 1
+            fi
+            
+            # عرض حالة الحاويات
+            echo "📊 حالة الحاويات:"
+            docker-compose ps
+            
+            echo "🎉 تم النشر بنجاح!"
+          ENDSSH
+
+      - name: 🧪 Health Check After Deployment
+        run: |
+          echo "🔍 فحص صحة الخدمات بعد النشر..."
+
+          # انتظار إضافي للتأكد
+          sleep 30
+
+          # اختبار الخدمات من الخارج
+          if curl -f http://${{ secrets.EC2_HOST }}/health; then
+            echo "✅ الخدمات تعمل بشكل صحيح من الخارج"
           else
-            echo "❌ النشر فشل - الخدمات لا تعمل"
-            docker-compose logs --tail=50
+            echo "❌ الخدمات لا تعمل من الخارج - تحقق من Security Groups"
             exit 1
           fi
-          
-          # عرض حالة الحاويات
-          echo "📊 حالة الحاويات:"
-          docker-compose ps
-          
-          echo "🎉 تم النشر بنجاح!"
-        ENDSSH
-        
-    - name: 🧪 Health Check After Deployment
-      run: |
-        echo "🔍 فحص صحة الخدمات بعد النشر..."
-        
-        # انتظار إضافي للتأكد
-        sleep 30
-        
-        # اختبار الخدمات من الخارج
-        if curl -f http://${{ secrets.EC2_HOST }}/health; then
-          echo "✅ الخدمات تعمل بشكل صحيح من الخارج"
-        else
-          echo "❌ الخدمات لا تعمل من الخارج - تحقق من Security Groups"
-          exit 1
-        fi
-        
-    - name: 📢 Deployment Notification
-      if: always()
-      run: |
-        if [ $? -eq 0 ]; then
-          echo "🎉 تم النشر بنجاح إلى الإنتاج!"
-          echo "🌐 الموقع: http://${{ secrets.EC2_HOST }}"
-          echo "⏰ الوقت: $(date)"
-          echo "📝 Commit: ${{ github.sha }}"
-        else
-          echo "❌ فشل النشر!"
-          echo "🔧 يرجى مراجعة السجلات"
-        fi
+
+      - name: 📢 Deployment Notification
+        if: always()
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "🎉 تم النشر بنجاح إلى الإنتاج!"
+            echo "🌐 الموقع: http://${{ secrets.EC2_HOST }}"
+            echo "⏰ الوقت: $(date)"
+            echo "📝 Commit: ${{ github.sha }}"
+          else
+            echo "❌ فشل النشر!"
+            echo "🔧 يرجى مراجعة السجلات"
+          fi
