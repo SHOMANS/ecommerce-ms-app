@@ -23,7 +23,7 @@ export class UsersService {
   ) {}
 
   async createUserFromEvent(userData: UserCreatedEvent): Promise<void> {
-    if (!userData || !userData.id || !userData.email || !userData.role) {
+    if (!userData?.id || !userData.email || !userData.role) {
       console.warn('Received invalid user data:', userData);
       return;
     }
