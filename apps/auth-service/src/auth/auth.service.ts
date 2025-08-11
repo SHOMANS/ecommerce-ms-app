@@ -87,13 +87,27 @@ export class AuthService {
     };
     const access_token = await this.jwtService.signAsync(payload);
 
-    const userData = (await this.kafkaClient
-      .send(KAFKA_EVENTS.USER_LOOKUP_REQUEST, { userId: user.id })
-      .toPromise()) as UserResponseDto;
+    try {
+      const userData = (await this.kafkaClient
+        .send(KAFKA_EVENTS.USER_LOOKUP_REQUEST, { userId: user.id })
+        .toPromise()) as UserResponseDto;
 
-    return {
-      user: userData,
-      access_token,
-    };
+      return {
+        user: userData,
+        access_token,
+      };
+    } catch {
+      // If Kafka fails, return basic user data
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        access_token,
+      };
+    }
   }
 }
