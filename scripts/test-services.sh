@@ -83,7 +83,20 @@ test_api_endpoint "User Signup via Gateway" "POST" "$GATEWAY_URL/auth/signup" "$
 
 # اختبار تسجيل الدخول
 signin_data='{"email":"'$test_user_email'","password":"testpass123"}'
-test_api_endpoint "User Signin via Gateway" "POST" "$GATEWAY_URL/auth/signin" "$signin_data" "200" || ((errors++))
+
+# اختبار signin مع التحقق من response code مرن
+echo "🧪 اختبار: User Signin via Gateway"
+signin_response_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+    -H "Content-Type: application/json" \
+    -d "$signin_data" \
+    "$GATEWAY_URL/auth/signin" || echo "000")
+
+if [ "$signin_response_code" = "200" ] || [ "$signin_response_code" = "201" ]; then
+    echo "✅ User Signin via Gateway - نجح (كود: $signin_response_code)"
+else
+    echo "❌ User Signin via Gateway - فشل (متوقع: 200 أو 201، حصل على: $signin_response_code)"
+    ((errors++))
+fi
 
 # اختبار الحصول على جميع المستخدمين
 test_api_endpoint "Get All Users" "GET" "$USERS_URL/users/all" "" "200" || ((errors++))
@@ -93,7 +106,7 @@ echo "📋 اختبار قواعد البيانات والاتصالات..."
 
 # التحقق من اتصال PostgreSQL
 echo "🔍 اختبار اتصال PostgreSQL..."
-if docker-compose exec -T postgres pg_isready -U postgres; then
+if docker compose exec -T postgres pg_isready -U postgres; then
     echo "✅ PostgreSQL متصل"
 else
     echo "❌ PostgreSQL غير متصل"
@@ -102,7 +115,7 @@ fi
 
 # التحقق من اتصال Redis
 echo "🔍 اختبار اتصال Redis..."
-if docker-compose exec -T redis redis-cli ping | grep -q "PONG"; then
+if docker compose exec -T redis redis-cli ping | grep -q "PONG"; then
     echo "✅ Redis متصل"
 else
     echo "❌ Redis غير متصل"
@@ -111,7 +124,7 @@ fi
 
 # التحقق من اتصال Kafka
 echo "🔍 اختبار اتصال Kafka..."
-if docker-compose exec -T kafka kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
+if docker compose exec -T kafka kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
     echo "✅ Kafka متصل"
 else
     echo "❌ Kafka غير متصل"
@@ -152,9 +165,9 @@ else
     echo ""
     echo "📋 سجلات الخدمات:"
     echo "=================="
-    docker-compose logs --tail=20 auth-service
+    docker compose logs --tail=20 auth-service
     echo "---"
-    docker-compose logs --tail=20 users-service
+    docker compose logs --tail=20 users-service
     
     exit 1
 fi

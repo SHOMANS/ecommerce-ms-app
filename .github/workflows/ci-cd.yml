@@ -11,6 +11,12 @@ on:
   # تشغيل يدوي
   workflow_dispatch:
 
+# صلاحيات مطلوبة للـ workflow
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
 # متغيرات البيئة العامة
 env:
   REGISTRY: ghcr.io
@@ -133,8 +139,16 @@ jobs:
       - name: 📊 Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v3
         if: always()
+        continue-on-error: true
         with:
           sarif_file: "trivy-results.sarif"
+
+      - name: 📤 Upload security scan artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-security-scan
+          path: trivy-results.sarif
 
   # Job 4: نشر للإنتاج (فقط من main branch)
   deploy-production:
