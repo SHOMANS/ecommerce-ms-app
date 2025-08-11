@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ClientKafka } from '@nestjs/microservices';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
-import type {
+import {
   UserCreatedEvent,
   UpdateUserDto,
   UserResponseDto,
