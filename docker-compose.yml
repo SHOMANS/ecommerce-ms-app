@@ -47,7 +47,7 @@ services:
     ports:
       - '2181:2181'
     environment:
-      ALLOW_ANONYMOUS_LOGIN: yes
+      ALLOW_ANONYMOUS_LOGIN: 'yes'
     networks:
       - prod-network
     volumes:
@@ -73,7 +73,7 @@ services:
       KAFKA_CFG_LISTENERS: PLAINTEXT://0.0.0.0:9092,INTERNAL://0.0.0.0:9093
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
       KAFKA_CFG_INTER_BROKER_LISTENER_NAME: INTERNAL
-      ALLOW_PLAINTEXT_LISTENER: yes
+      ALLOW_PLAINTEXT_LISTENER: 'yes'
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: 'true'
     depends_on:
       - zookeeper
