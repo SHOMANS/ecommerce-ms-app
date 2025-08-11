@@ -244,7 +244,7 @@ jobs:
           version="${{ needs.create-release.outputs.new_version }}"
 
           # بناء الـ images
-          docker-compose build
+          docker compose build
 
           # تسمية الـ images بالإصدار الجديد
           docker tag ecommerce-ms-app_auth-service ${{ env.REGISTRY }}/${{ github.repository_owner }}/auth-service:v$version

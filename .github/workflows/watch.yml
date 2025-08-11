@@ -102,11 +102,11 @@ jobs:
           echo "🐳 Validating Docker configuration..."
 
           # التحقق من صحة docker-compose files
-          docker-compose -f docker-compose.yml config
-          docker-compose -f docker-compose.dev.yml config
+          docker compose -f docker-compose.yml config
+          docker compose -f docker-compose.dev.yml config
 
           # اختبار بناء سريع
-          docker-compose -f docker-compose.dev.yml build --no-cache auth-service
+          docker compose -f docker-compose.dev.yml build --no-cache auth-service
 
       - name: 📊 Generate change report
         run: |
@@ -165,7 +165,7 @@ jobs:
 
       - name: 🚀 Start services for monitoring
         run: |
-          docker-compose -f docker-compose.dev.yml up -d
+          docker compose -f docker-compose.dev.yml up -d
           sleep 45
 
       - name: 📊 Performance benchmarks
@@ -214,7 +214,7 @@ jobs:
 
       - name: 🧹 Cleanup
         if: always()
-        run: docker-compose -f docker-compose.dev.yml down
+        run: docker compose -f docker-compose.dev.yml down
 
       - name: 📤 Upload performance report
         uses: actions/upload-artifact@v4
