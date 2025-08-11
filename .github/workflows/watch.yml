@@ -65,16 +65,18 @@ jobs:
             echo "env_changed=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: 🟢 Setup Node.js
+      - name: � Install pnpm
+        run: npm install -g pnpm
+
+      - name: �🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "18"
-          cache: "npm"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
 
       - name: 📦 Install dependencies
-        run: |
-          npm install -g pnpm
-          pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: 🔧 Validate environment setup
         if: steps.changes.outputs.env_changed == 'true' || steps.changes.outputs.scripts_changed == 'true'
