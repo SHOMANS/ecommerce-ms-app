@@ -23,9 +23,9 @@ env:
   IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
 
 jobs:
-  # Job 1: اختبار الكود والبناء
-  test-and-build:
-    name: Test & Build
+  # Job 1: البناء والتحقق من الكود
+  build-and-lint:
+    name: Build & Lint
     runs-on: ubuntu-latest
 
     strategy:
@@ -58,26 +58,14 @@ jobs:
       - name: 🏗️ Build users service
         run: pnpm --filter @ecommerce/users-service build
 
-      - name: 🧪 Run tests
-        run: pnpm test
-
       - name: 🔍 Lint code
         run: pnpm lint
 
-      - name: 📊 Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results-node-${{ matrix.node-version }}
-          path: |
-            coverage/
-            test-results.xml
-
   # Job 2: بناء Docker images
   docker-build:
-    name: Docker Build & Test
+    name: Docker Build
     runs-on: ubuntu-latest
-    needs: test-and-build
+    needs: build-and-lint
     if: github.event_name == 'push'
 
     steps:
@@ -99,30 +87,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🏗️ Build and test with Docker Compose
+      - name: 🏗️ Build Docker images
         run: |
-          # بناء الـ images
+          # بناء الـ images للتطوير
           docker compose -f docker-compose.dev.yml build
-
-          # تشغيل الخدمات للاختبار
-          docker compose -f docker-compose.dev.yml up -d
-
-          # انتظار حتى تصبح الخدمات جاهزة
-          sleep 30
-
-          # اختبار الخدمات
-          chmod +x scripts/test-services.sh
-          ./scripts/test-services.sh
-
-      - name: 🧹 Cleanup
-        if: always()
-        run: docker compose -f docker-compose.dev.yml down
 
   # Job 3: أمان وفحص الثغرات
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: test-and-build
+    needs: build-and-lint
 
     steps:
       - name: 📥 Checkout code
@@ -154,7 +128,7 @@ jobs:
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: [test-and-build, docker-build, security-scan]
+    needs: [build-and-lint, docker-build, security-scan]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: production
 

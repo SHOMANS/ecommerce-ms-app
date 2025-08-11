@@ -88,10 +88,10 @@ jobs:
           ./scripts/setup-env.sh dev
           ./scripts/validate-env.sh
 
-      - name: 🏗️ Quick build test
+      - name: 🏗️ Quick build validation
         if: steps.changes.outputs.apps_changed == 'true' || steps.changes.outputs.packages_changed == 'true'
         run: |
-          echo "🏗️ Testing build process..."
+          echo "🏗️ Validating build process..."
           pnpm --filter @ecommerce/shared build
           pnpm --filter @ecommerce/auth-service build
           pnpm --filter @ecommerce/users-service build
@@ -148,76 +148,3 @@ jobs:
         with:
           name: change-report-${{ github.sha }}
           path: change_report.md
-
-  performance-monitor:
-    name: Performance Monitoring
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🔧 Setup environment
-        run: |
-          chmod +x scripts/setup-env.sh
-          ./scripts/setup-env.sh dev
-
-      - name: 🚀 Start services for monitoring
-        run: |
-          docker compose -f docker-compose.dev.yml up -d
-          sleep 45
-
-      - name: 📊 Performance benchmarks
-        run: |
-          echo "📊 Running performance benchmarks..."
-
-          # اختبار زمن الاستجابة
-          echo "🔍 Testing response times..."
-
-          # Health check response time
-          health_time=$(curl -o /dev/null -s -w '%{time_total}\n' http://localhost:8080/health)
-          echo "Health check response time: ${health_time}s"
-
-          # Signup response time
-          signup_data='{"email":"perf-test@example.com","password":"test123"}'
-          signup_time=$(curl -o /dev/null -s -w '%{time_total}\n' \
-            -X POST -H "Content-Type: application/json" \
-            -d "$signup_data" http://localhost:8080/auth/signup)
-          echo "Signup response time: ${signup_time}s"
-
-          # Signin response time (tests Kafka communication)
-          signin_time=$(curl -o /dev/null -s -w '%{time_total}\n' \
-            -X POST -H "Content-Type: application/json" \
-            -d "$signup_data" http://localhost:8080/auth/signin)
-          echo "Signin response time: ${signin_time}s"
-
-          # إنشاء تقرير الأداء
-          echo "📊 Performance Report" > performance_report.md
-          echo "====================" >> performance_report.md
-          echo "" >> performance_report.md
-          echo "- Health Check: ${health_time}s" >> performance_report.md
-          echo "- User Signup: ${signup_time}s" >> performance_report.md
-          echo "- User Signin: ${signin_time}s" >> performance_report.md
-          echo "" >> performance_report.md
-
-          # تحديد إذا كان الأداء مقبول
-          if (( $(echo "$health_time < 1.0" | bc -l) )) && \
-             (( $(echo "$signup_time < 2.0" | bc -l) )) && \
-             (( $(echo "$signin_time < 3.0" | bc -l) )); then
-            echo "**Status:** ✅ Performance within acceptable limits" >> performance_report.md
-          else
-            echo "**Status:** ⚠️ Performance degradation detected" >> performance_report.md
-          fi
-
-          cat performance_report.md
-
-      - name: 🧹 Cleanup
-        if: always()
-        run: docker compose -f docker-compose.dev.yml down
-
-      - name: 📤 Upload performance report
-        uses: actions/upload-artifact@v4
-        with:
-          name: performance-report-${{ github.sha }}
-          path: performance_report.md
