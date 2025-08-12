@@ -121,6 +121,34 @@ jobs:
             echo "   - Current working directory: $(pwd)"
             echo "   - Available disk space: $(df -h . | tail -1)"
             
+            # Comprehensive disk cleanup to free space
+            echo "🧹 Starting disk cleanup to free space..."
+            
+            # Stop all containers and clean Docker
+            echo "🛑 Stopping Docker containers and cleaning up..."
+            docker stop $(docker ps -aq) 2>/dev/null || true
+            docker rm $(docker ps -aq) 2>/dev/null || true
+            docker rmi $(docker images -q) --force 2>/dev/null || true
+            docker system prune -af --volumes 2>/dev/null || true
+            
+            # Clean package caches
+            echo "🧹 Cleaning package caches..."
+            sudo apt-get clean 2>/dev/null || true
+            sudo apt-get autoremove -y 2>/dev/null || true
+            npm cache clean --force 2>/dev/null || true
+            yarn cache clean 2>/dev/null || true
+            pnpm store prune 2>/dev/null || true
+            rm -rf ~/.npm ~/.yarn ~/.cache 2>/dev/null || true
+            
+            # Clean logs and temp files
+            echo "🧹 Cleaning logs and temporary files..."
+            sudo journalctl --vacuum-time=1d 2>/dev/null || true
+            sudo rm -rf /tmp/* /var/tmp/* 2>/dev/null || true
+            sudo find /var/log -name "*.log" -type f -mtime +3 -delete 2>/dev/null || true
+            
+            # Show space after cleanup
+            echo "📊 Disk space after cleanup: $(df -h / | tail -1)"
+            
             # Ensure we start fresh - remove existing directory if it exists
             echo "🧹 Cleaning up existing project directory..."
             rm -rf ~/ecommerce-ms-app 2>/dev/null || true
@@ -169,10 +197,20 @@ jobs:
             # Check if we have docker-compose or docker compose
             if command -v docker-compose >/dev/null 2>&1; then
               echo "📦 Using docker-compose command..."
-              docker-compose up --build -d --remove-orphans
+              # Use production compose file if available
+              if [ -f "docker-compose.yml" ]; then
+                docker-compose -f docker-compose.yml up --build -d --remove-orphans
+              else
+                docker-compose up --build -d --remove-orphans
+              fi
             elif docker compose version >/dev/null 2>&1; then
               echo "📦 Using docker compose command..."
-              docker compose up --build -d --remove-orphans
+              # Use production compose file if available
+              if [ -f "docker-compose.yml" ]; then
+                docker compose -f docker-compose.yml up --build -d --remove-orphans
+              else
+                docker compose up --build -d --remove-orphans
+              fi
             else
               echo "❌ Neither docker-compose nor docker compose found!"
               echo "🔧 Installing docker-compose..."
@@ -182,7 +220,12 @@ jobs:
               sudo chmod +x /usr/local/bin/docker-compose
               
               echo "✅ Docker-compose installed, starting services..."
-              docker-compose up --build -d --remove-orphans
+              # Use production compose file if available
+              if [ -f "docker-compose.yml" ]; then
+                docker-compose -f docker-compose.yml up --build -d --remove-orphans
+              else
+                docker-compose up --build -d --remove-orphans
+              fi
             fi
             
             # Wait for services to be ready
@@ -292,5 +335,9 @@ jobs:
             echo "   3. Ensure Docker and Docker Compose are installed on EC2"
             echo "   4. Check Security Groups allow inbound traffic on port 80"
             echo "   5. Verify SSH key permissions and connectivity"
+            echo "   6. DISK SPACE: If you see 'no space left on device' errors:"
+            echo "      - Consider upgrading to a larger EC2 instance type"
+            echo "      - Or add an EBS volume for more storage"
+            echo "      - Current cleanup may not be sufficient for build requirements"
           fi
           echo "=========================="
