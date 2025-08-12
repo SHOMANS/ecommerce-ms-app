@@ -118,15 +118,31 @@ jobs:
             if [ ! -d "~/ecommerce-ms-app" ]; then
               echo "📁 Project directory not found. Cloning repository..."
               git clone https://github.com/SHOMANS/ecommerce-ms-app.git ~/ecommerce-ms-app
+            else
+              echo "📁 Project directory exists. Updating repository..."
             fi
             
             cd ~/ecommerce-ms-app
             
-            # Update code
+            # Update code with error handling
             echo "📥 Updating code from GitHub..."
-            git fetch origin --prune
-            git reset --hard origin/main
-            git clean -fd
+            if ! git fetch origin --prune; then
+              echo "⚠️  Git fetch failed, attempting to fix..."
+              git remote set-url origin https://github.com/SHOMANS/ecommerce-ms-app.git
+              if ! git fetch origin --prune; then
+                echo "🔄 Git operations failed. Re-cloning repository..."
+                cd ~
+                rm -rf ~/ecommerce-ms-app
+                git clone https://github.com/SHOMANS/ecommerce-ms-app.git ~/ecommerce-ms-app
+                cd ~/ecommerce-ms-app
+              fi
+            fi
+            
+            # Reset to latest main branch (only if we're in a git repository)
+            if [ -d ".git" ]; then
+              git reset --hard origin/main
+              git clean -fd
+            fi
             
             # Stop current services
             echo "🛑 Stopping current services..."
