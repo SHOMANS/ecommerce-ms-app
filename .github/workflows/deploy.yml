@@ -114,35 +114,32 @@ jobs:
             
             echo "🔄 Starting deployment on EC2 instance..."
             
-            # Navigate to project directory
-            if [ ! -d "~/ecommerce-ms-app" ]; then
-              echo "📁 Project directory not found. Cloning repository..."
-              git clone https://github.com/SHOMANS/ecommerce-ms-app.git ~/ecommerce-ms-app
+            # Print diagnostic information
+            echo "🔍 Diagnostic information:"
+            echo "   - Current user: $(whoami)"
+            echo "   - Home directory: $HOME"
+            echo "   - Current working directory: $(pwd)"
+            echo "   - Available disk space: $(df -h . | tail -1)"
+            
+            # Ensure we start fresh - remove existing directory if it exists
+            echo "🧹 Cleaning up existing project directory..."
+            rm -rf ~/ecommerce-ms-app 2>/dev/null || true
+            rm -rf /home/*/ecommerce-ms-app 2>/dev/null || true
+            
+            # Clone fresh repository
+            echo "📁 Cloning fresh repository..."
+            if ! git clone https://github.com/SHOMANS/ecommerce-ms-app.git ~/ecommerce-ms-app; then
+              echo "⚠️  Failed to clone to home directory, trying alternative location..."
+              PROJECT_DIR="/tmp/ecommerce-ms-app-$(date +%s)"
+              git clone https://github.com/SHOMANS/ecommerce-ms-app.git "$PROJECT_DIR"
+              cd "$PROJECT_DIR"
             else
-              echo "📁 Project directory exists. Updating repository..."
+              cd ~/ecommerce-ms-app
             fi
             
-            cd ~/ecommerce-ms-app
-            
-            # Update code with error handling
-            echo "📥 Updating code from GitHub..."
-            if ! git fetch origin --prune; then
-              echo "⚠️  Git fetch failed, attempting to fix..."
-              git remote set-url origin https://github.com/SHOMANS/ecommerce-ms-app.git
-              if ! git fetch origin --prune; then
-                echo "🔄 Git operations failed. Re-cloning repository..."
-                cd ~
-                rm -rf ~/ecommerce-ms-app
-                git clone https://github.com/SHOMANS/ecommerce-ms-app.git ~/ecommerce-ms-app
-                cd ~/ecommerce-ms-app
-              fi
-            fi
-            
-            # Reset to latest main branch (only if we're in a git repository)
-            if [ -d ".git" ]; then
-              git reset --hard origin/main
-              git clean -fd
-            fi
+            # Verify we're in the right directory and it's a git repository
+            echo "� Current directory: $(pwd)"
+            echo "📂 Repository status: $(git status --porcelain || echo 'Not a git repository')"
             
             # Stop current services
             echo "🛑 Stopping current services..."
