@@ -143,7 +143,11 @@ jobs:
             
             # Stop current services
             echo "🛑 Stopping current services..."
-            docker compose down --remove-orphans --timeout 30 2>/dev/null || true
+            if command -v docker-compose >/dev/null 2>&1; then
+              docker-compose down --remove-orphans --timeout 30 2>/dev/null || true
+            else
+              docker compose down --remove-orphans --timeout 30 2>/dev/null || true
+            fi
             
             # Cleanup old images and containers
             echo "🧹 Cleaning up old containers and images..."
@@ -161,7 +165,25 @@ jobs:
             
             # Build and start new services
             echo "🏗️  Building and starting services..."
-            docker compose up --build -d --remove-orphans
+            
+            # Check if we have docker-compose or docker compose
+            if command -v docker-compose >/dev/null 2>&1; then
+              echo "📦 Using docker-compose command..."
+              docker-compose up --build -d --remove-orphans
+            elif docker compose version >/dev/null 2>&1; then
+              echo "📦 Using docker compose command..."
+              docker compose up --build -d --remove-orphans
+            else
+              echo "❌ Neither docker-compose nor docker compose found!"
+              echo "🔧 Installing docker-compose..."
+              
+              # Install docker-compose
+              sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+              
+              echo "✅ Docker-compose installed, starting services..."
+              docker-compose up --build -d --remove-orphans
+            fi
             
             # Wait for services to be ready
             echo "⏳ Waiting for services to start..."
@@ -169,7 +191,11 @@ jobs:
             
             # Check if services are running
             echo "🔍 Checking container status..."
-            docker compose ps
+            if command -v docker-compose >/dev/null 2>&1; then
+              docker-compose ps
+            else
+              docker compose ps
+            fi
             
             # Test services with retry
             echo "🧪 Testing services..."
@@ -181,9 +207,17 @@ jobs:
                 if [ $i -eq 5 ]; then
                   echo "❌ Deployment failed - Services are not responding after 5 attempts"
                   echo "📋 Container logs:"
-                  docker compose logs --tail=20
+                  if command -v docker-compose >/dev/null 2>&1; then
+                    docker-compose logs --tail=20
+                  else
+                    docker compose logs --tail=20
+                  fi
                   echo "📊 Container status:"
-                  docker compose ps
+                  if command -v docker-compose >/dev/null 2>&1; then
+                    docker-compose ps
+                  else
+                    docker compose ps
+                  fi
                   exit 1
                 fi
                 echo "⏳ Services not ready yet, retrying in 10 seconds... (attempt $i/5)"
@@ -193,7 +227,11 @@ jobs:
             
             echo "🎉 Deployment completed successfully!"
             echo "📊 Final container status:"
-            docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+            if command -v docker-compose >/dev/null 2>&1; then
+              docker-compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+            else
+              docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+            fi
           ENDSSH
 
       - name: Health Check After Deployment
