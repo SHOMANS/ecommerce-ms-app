@@ -16,25 +16,6 @@ export class CreateUserDto {
   role?: string;
 }
 
-// For user creation in services (no password)
-export class CreateUserServiceDto {
-  @IsString()
-  @IsNotEmpty()
-  id!: string;
-
-  @IsEmail()
-  @IsNotEmpty()
-  email!: string;
-
-  @IsOptional()
-  @IsString()
-  name?: string;
-
-  @IsString()
-  @IsNotEmpty()
-  role!: string;
-}
-
 // For login requests
 export class LoginDto {
   @IsEmail()

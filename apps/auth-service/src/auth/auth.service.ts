@@ -17,6 +17,7 @@ import {
   SignupResponseDto,
   JwtPayload,
   UserResponseDto,
+  UserUpdateFromAuthEvent,
 } from '@ecommerce/shared';
 
 @Injectable()
@@ -109,5 +110,31 @@ export class AuthService {
         access_token,
       };
     }
+  }
+
+  async updateUserFromEvent(data: UserUpdateFromAuthEvent): Promise<void> {
+    const user = await this.userRepo.findOne({ where: { id: data.id } });
+    if (!user) {
+      return;
+    }
+
+    if (data.email) {
+      user.email = data.email;
+    }
+
+    if (data.role) {
+      user.role = data.role;
+    }
+
+    await this.userRepo.save(user);
+  }
+
+  async deleteUserFromEvent(data: UserUpdateFromAuthEvent): Promise<void> {
+    const user = await this.userRepo.findOne({ where: { id: data.id } });
+    if (!user) {
+      return;
+    }
+
+    await this.userRepo.remove(user);
   }
 }

@@ -18,7 +18,7 @@ export * from './decorators/roles.decorator';
 export * from './types';
 
 // Utils
-export * from './utils';
+// export * from './utils';
 
 // Constants
 export * from './constants';

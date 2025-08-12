@@ -4,12 +4,14 @@ import { JwtService } from '@nestjs/jwt';
 import { ClientKafka } from '@nestjs/microservices';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
+import { UserDeletedFromAuthEvent } from '../../../../packages/shared/src/events/user.events';
 import {
   UserCreatedEvent,
   UpdateUserDto,
   JwtPayload,
   ProfileResponseDto,
-  UserLookupRequestEvent,
+  UserUpdateFromAuthEvent,
+  KAFKA_EVENTS,
 } from '@ecommerce/shared';
 
 @Injectable()
@@ -75,6 +77,12 @@ export class UsersService {
 
     Object.assign(user, updateData);
     const updatedUser = await this.userRepo.save(user);
+    const userUpdatedEvent: UserUpdateFromAuthEvent = {
+      id: updatedUser.id,
+      email: updatedUser.email,
+    };
+    this.kafkaClient.emit(KAFKA_EVENTS.USER_UPDATED, userUpdatedEvent);
+
     return this.mapToResponse(updatedUser);
   }
 
@@ -104,27 +112,29 @@ export class UsersService {
   async updateUser(id: string, updateData: UpdateUserDto) {
     const user = await this.userRepo.findOne({ where: { id } });
     if (!user) {
-      return null;
+      throw new NotFoundException('User not found');
     }
 
     Object.assign(user, updateData);
     const updatedUser = await this.userRepo.save(user);
+    const userUpdatedEvent: UserUpdateFromAuthEvent = {
+      id: updatedUser.id,
+      email: updatedUser.email,
+      role: updatedUser.role,
+    };
+    this.kafkaClient.emit(KAFKA_EVENTS.USER_UPDATED, userUpdatedEvent);
+
     return this.mapToResponse(updatedUser);
   }
 
-  async deleteUser(id: string): Promise<boolean> {
+  async deleteUser(id: string) {
     const result = await this.userRepo.delete(id);
-    return (result.affected ?? 0) > 0;
-  }
-
-  async handleUserLookupRequest(data: UserLookupRequestEvent) {
-    const user = await this.userRepo.findOne({
-      where: { id: data.userId },
-    });
-    if (!user) {
+    if (!result.affected) {
       throw new NotFoundException('User not found');
     }
-    return this.mapToResponse(user);
+    const userDeletedEvent: UserDeletedFromAuthEvent = { id };
+    this.kafkaClient.emit(KAFKA_EVENTS.USER_DELETED, userDeletedEvent);
+    return { message: 'User deleted successfully' };
   }
 
   private mapToResponse(user: User) {

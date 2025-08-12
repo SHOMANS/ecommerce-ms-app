@@ -2,12 +2,13 @@ import {
   Controller,
   Get,
   Put,
+  Delete,
   Body,
   UseGuards,
   Request,
   Param,
 } from '@nestjs/common';
-import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
+import { EventPattern, Payload } from '@nestjs/microservices';
 import {
   UpdateUserDto,
   ProfileResponseDto,
@@ -16,11 +17,7 @@ import {
   Roles,
   KAFKA_EVENTS,
 } from '@ecommerce/shared';
-import type {
-  UserCreatedEvent,
-  AuthenticatedRequest,
-  UserLookupRequestEvent,
-} from '@ecommerce/shared';
+import type { UserCreatedEvent, AuthenticatedRequest } from '@ecommerce/shared';
 import { UsersService } from './users.service';
 
 @Controller()
@@ -31,12 +28,6 @@ export class UsersController {
   @EventPattern(KAFKA_EVENTS.USER_CREATED)
   async handleUserCreated(@Payload() data: UserCreatedEvent): Promise<void> {
     await this.usersService.createUserFromEvent(data);
-  }
-
-  @MessagePattern(KAFKA_EVENTS.USER_LOOKUP_REQUEST)
-  async handleUserLookupRequest(@Payload() data: UserLookupRequestEvent) {
-    console.log(data);
-    return this.usersService.handleUserLookupRequest(data);
   }
 
   // HTTP Endpoints
@@ -69,5 +60,22 @@ export class UsersController {
   @Get(':id')
   async getUserById(@Param('id') id: string) {
     return this.usersService.getUserById(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @Put(':id')
+  async updateUser(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return this.usersService.updateUser(id, updateUserDto);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @Delete(':id')
+  async deleteUser(@Param('id') id: string) {
+    return this.usersService.deleteUser(id);
   }
 }

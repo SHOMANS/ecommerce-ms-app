@@ -15,13 +15,14 @@ export interface UserUpdatedEvent {
   updatedAt: Date;
 }
 
-export interface UserDeletedEvent {
+export interface UserDeletedFromAuthEvent {
   id: string;
-  email: string;
-  deletedAt: Date;
 }
 
-// New events for user lookup via Kafka
-export interface UserLookupRequestEvent {
-  userId: string;
+// Events from auth service to users service
+export interface UserUpdateFromAuthEvent {
+  id: string;
+  email?: string;
+  name?: string;
+  role?: string;
 }
