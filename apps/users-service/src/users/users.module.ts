@@ -21,7 +21,7 @@ import { JwtAuthGuard, RolesGuard } from '@ecommerce/shared';
         options: {
           client: {
             clientId: 'users-service-client',
-            brokers: [process.env.KAFKA_BROKER || 'localhost:9092'],
+            brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(','),
           },
         },
       },

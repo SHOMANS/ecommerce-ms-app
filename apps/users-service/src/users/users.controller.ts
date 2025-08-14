@@ -8,7 +8,7 @@ import {
   Request,
   Param,
 } from '@nestjs/common';
-import { EventPattern, Payload } from '@nestjs/microservices';
+import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
 import {
   UpdateUserDto,
   ProfileResponseDto,
@@ -28,6 +28,17 @@ export class UsersController {
   @EventPattern(KAFKA_EVENTS.USER_CREATED)
   async handleUserCreated(@Payload() data: UserCreatedEvent): Promise<void> {
     await this.usersService.createUserFromEvent(data);
+  }
+
+  // Kafka Message Pattern Handlers (request-response)
+  @MessagePattern(KAFKA_EVENTS.USER_LOOKUP_REQUEST)
+  async handleUserLookupRequest(@Payload() data: { userId: string }) {
+    try {
+      return await this.usersService.getUserById(data.userId);
+    } catch {
+      // Return null if user not found, let auth service handle fallback
+      return null;
+    }
   }
 
   // HTTP Endpoints
