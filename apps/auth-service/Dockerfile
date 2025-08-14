@@ -24,6 +24,7 @@ RUN pnpm --filter @ecommerce/shared build
 RUN pnpm --filter @ecommerce/auth-service build
 
 # Expose port and start in development mode
+WORKDIR /app/apps/auth-service
 EXPOSE 3001
 CMD ["sh", "-c", "node $(find dist -name 'main.js' | head -1)"]
 

@@ -2,27 +2,48 @@
 
 # Environment Validation Script
 # Checks if required environment variables are set and files exist
+# Usage: ./scripts/validate-env.sh [dev|prod]
 
 set -e
 
+ENVIRONMENT=${1:-dev}
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-echo "🔍 Environment Validation"
-echo "========================="
+echo "🔍 Environment Validation ($ENVIRONMENT)"
+echo "======================================"
 
-# Check if .env file exists
-if [ -f "$ROOT_DIR/.env" ]; then
-    echo "✅ .env file exists"
+# Determine which .env file to check
+case $ENVIRONMENT in
+  "dev"|"development")
+    ENV_FILE="$ROOT_DIR/.env.development"
+    SAMPLE_FILE="$ROOT_DIR/.env.development.sample"
+    ;;
+  "prod"|"production")
+    ENV_FILE="$ROOT_DIR/.env.production"
+    SAMPLE_FILE="$ROOT_DIR/.env.production.sample"
+    ;;
+  *)
+    echo "❌ Unknown environment: $ENVIRONMENT"
+    echo "📖 Usage: $0 [dev|prod]"
+    exit 1
+    ;;
+esac
+
+# Check if environment file exists
+if [ -f "$ENV_FILE" ]; then
+    echo "✅ $ENV_FILE exists"
     
-    # Source the .env file
+    # Source the environment file
     set -a
-    source "$ROOT_DIR/.env"
+    source "$ENV_FILE"
     set +a
     
     # Check critical variables
     echo ""
     echo "🔑 Environment Variables:"
     echo "NODE_ENV: ${NODE_ENV:-❌ NOT SET}"
+    echo "AUTH_SERVICE_PORT: ${AUTH_SERVICE_PORT:-❌ NOT SET}"
+    echo "USERS_SERVICE_PORT: ${USERS_SERVICE_PORT:-❌ NOT SET}"
     echo "POSTGRES_HOST: ${POSTGRES_HOST:-❌ NOT SET}"
     echo "POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:+✅ SET}${POSTGRES_PASSWORD:-❌ NOT SET}"
     echo "JWT_SECRET: ${JWT_SECRET:+✅ SET}${JWT_SECRET:-❌ NOT SET}"
@@ -34,7 +55,7 @@ if [ -f "$ROOT_DIR/.env" ]; then
         echo ""
         echo "🔒 Production Security Check:"
         
-        if [[ "$JWT_SECRET" == *"CHANGE_THIS"* || "$JWT_SECRET" == *"change"* || "$JWT_SECRET" == *"dev"* ]]; then
+        if [[ "$JWT_SECRET" == *"CHANGE_THIS"* || "$JWT_SECRET" == *"change"* || "$JWT_SECRET" == *"your-super-secret"* ]]; then
             echo "❌ JWT_SECRET appears to be a default/dev value - CHANGE IT!"
         else
             echo "✅ JWT_SECRET appears to be customized"
@@ -45,23 +66,28 @@ if [ -f "$ROOT_DIR/.env" ]; then
         else
             echo "✅ POSTGRES_PASSWORD appears to be customized"
         fi
+        
+        if [[ "$REDIS_PASSWORD" == *"CHANGE_THIS"* || "$REDIS_PASSWORD" == "redis" ]]; then
+            echo "❌ REDIS_PASSWORD appears to be default - CHANGE IT!"
+        else
+            echo "✅ REDIS_PASSWORD appears to be customized"
+        fi
     fi
     
 else
-    echo "❌ .env file not found"
-    echo "💡 Run: npm run setup:dev or npm run setup:prod"
+    echo "❌ $ENV_FILE not found"
+    echo "💡 Run: pnpm setup:$ENVIRONMENT"
+    exit 1
 fi
 
-# Check sample files
+# Check sample file
 echo ""
 echo "📝 Sample Files:"
-for sample in .env.sample .env.development.sample .env.production.sample; do
-    if [ -f "$ROOT_DIR/$sample" ]; then
-        echo "✅ $sample exists"
-    else
-        echo "❌ $sample missing"
-    fi
-done
+if [ -f "$SAMPLE_FILE" ]; then
+    echo "✅ $SAMPLE_FILE exists"
+else
+    echo "❌ $SAMPLE_FILE missing"
+fi
 
 # Check Docker Compose files
 echo ""
@@ -75,4 +101,4 @@ for compose in docker-compose.yml docker-compose.dev.yml; do
 done
 
 echo ""
-echo "🎯 Validation complete!"
+echo "🎯 Validation complete for $ENVIRONMENT environment!"
