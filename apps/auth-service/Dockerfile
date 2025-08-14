@@ -20,9 +20,12 @@ RUN pnpm install --frozen-lockfile
 # Build shared package
 RUN pnpm --filter @ecommerce/shared build
 
+# Build auth-service
+RUN pnpm --filter @ecommerce/auth-service build
+
 # Expose port and start in development mode
 EXPOSE 3001
-CMD ["pnpm", "--filter", "@ecommerce/auth-service", "start:dev"]
+CMD ["sh", "-c", "node $(find dist -name 'main.js' | head -1)"]
 
 # Builder stage for production
 FROM base AS builder
@@ -72,4 +75,4 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3001/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
 
-CMD ["node", "dist/main"]
+CMD ["sh", "-c", "node $(find dist -name 'main.js' | head -1)"]
