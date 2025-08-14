@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:15
+    image: postgres:17
     restart: always
     environment:
       POSTGRES_PASSWORD: root
@@ -41,7 +41,7 @@ services:
       - zookeeper_dev:/bitnami
 
   kafka:
-    image: bitnami/kafka:3.6
+    image: bitnami/kafka:3.9
     restart: always
     ports:
       - '9092:9092'

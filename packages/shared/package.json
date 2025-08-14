@@ -15,18 +15,18 @@
     "class-transformer": "^0.5.1"
   },
   "devDependencies": {
-    "@nestjs/common": "^11.0.1",
-    "@nestjs/core": "^11.0.1",
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/core": "^11.1.6",
     "@nestjs/jwt": "^11.0.0",
-    "@nestjs/microservices": "^11.0.1",
-    "@types/express": "^4.17.21",
-    "express": "^4.19.2",
+    "@nestjs/microservices": "^11.1.6",
+    "@types/express": "^5.0.0",
+    "express": "^5.1.0",
     "typescript": "^5.9.2"
   },
   "peerDependencies": {
-    "@nestjs/common": "^11.0.1",
-    "@nestjs/core": "^11.0.1",
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/core": "^11.1.6",
     "@nestjs/jwt": "^11.0.0",
-    "@nestjs/microservices": "^11.0.1"
+    "@nestjs/microservices": "^11.1.6"
   }
 }
