@@ -91,8 +91,8 @@ importers:
         specifier: ^3.2.0
         version: 3.3.1
       '@eslint/js':
-        specifier: ^9.33.0
-        version: 9.33.0
+        specifier: ^9.36.0
+        version: 9.36.0
       '@nestjs/cli':
         specifier: ^11.0.0
         version: 11.0.10(@types/node@24.2.1)
@@ -218,8 +218,8 @@ importers:
         specifier: ^3.2.0
         version: 3.3.1
       '@eslint/js':
-        specifier: ^9.33.0
-        version: 9.33.0
+        specifier: ^9.36.0
+        version: 9.36.0
       '@nestjs/cli':
         specifier: ^11.0.0
         version: 11.0.10(@types/node@24.2.1)
@@ -554,6 +554,10 @@ packages:
     resolution: {integrity: sha512-5K1/mKhWaMfreBGJTwval43JJmkip0RmM+3+IuqupeSKNC/Th2Kc7ucaq5ovTSra/OOKB9c58CGSz3QMVbWt0A==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
+  '@eslint/js@9.36.0':
+    resolution: {integrity: sha512-uhCbYtYynH30iZErszX78U+nR3pJU3RHGQ57NXy5QupD4SBVwDeU8TNBy+MjMngc1UyIW9noKqsRqfjQTBU2dw==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
   '@eslint/object-schema@2.1.6':
     resolution: {integrity: sha512-RBMg5FRL0I0gs51M/guSAj5/e14VQ4tpZnQNWwuDT66P14I43ItmPfIZRhO9fUVIPOAQXU47atlywZ/czoqFPA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
@@ -836,8 +840,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
 
-  '@keyv/serialize@1.1.0':
-    resolution: {integrity: sha512-RlDgexML7Z63Q8BSaqhXdCYNBy/JQnqYIwxofUrNLGCblOMHp+xux2Q8nLMLlPpgHQPoU0Do8Z6btCpRBEqZ8g==}
+  '@keyv/serialize@1.1.1':
+    resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
 
   '@lukeed/csprng@1.1.0':
     resolution: {integrity: sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA==}
@@ -3949,6 +3953,8 @@ snapshots:
 
   '@eslint/js@9.33.0': {}
 
+  '@eslint/js@9.36.0': {}
+
   '@eslint/object-schema@2.1.6': {}
 
   '@eslint/plugin-kit@0.3.5':
@@ -4330,7 +4336,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.4
 
-  '@keyv/serialize@1.1.0': {}
+  '@keyv/serialize@1.1.1': {}
 
   '@lukeed/csprng@1.1.0': {}
 
@@ -6341,7 +6347,7 @@ snapshots:
 
   keyv@5.5.0:
     dependencies:
-      '@keyv/serialize': 1.1.0
+      '@keyv/serialize': 1.1.1
 
   leven@3.1.0: {}
 
