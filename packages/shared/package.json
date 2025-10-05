@@ -21,7 +21,7 @@
     "@nestjs/microservices": "^11.1.6",
     "@types/express": "^5.0.0",
     "express": "^5.1.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "@nestjs/common": "^11.1.6",
